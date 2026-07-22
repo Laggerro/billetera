@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banco Escolar - Registro de Alumno</title>
+  <link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+
+  <div class="login-card" style="max-width: 480px;">
+    <div class="login-header">
+      <h2>Alta de Cuenta Alumno 🎓</h2>
+      <p>Completá tus datos para crear tu billetera escolar</p>
+    </div>
+
+    <form id="formRegistroAlumno">
+      <div class="form-group">
+        <label for="regDni">DNI / Documento</label>
+        <input type="text" id="regDni" placeholder="Ej: 45123456" required>
+      </div>
+
+      <div class="form-group">
+        <label for="regNombre">Nombre y Apellido</label>
+        <input type="text" id="regNombre" placeholder="Ej: Lucas Gómez" required>
+      </div>
+
+      <div class="form-group">
+        <label for="regCurso">Curso / Grado</label>
+        <input type="text" id="regCurso" placeholder="Ej: 6to 2da" required>
+      </div>
+
+      <!-- Módulo de Foto con Vista Previa -->
+      <div class="form-group" style="text-align: center;">
+        <label>Foto de Perfil</label>
+        <div style="margin: 10px 0;">
+         <img id="imgPreview" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='110' height='110' viewBox='0 0 24 24' fill='none' stroke='%23a0aec0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'></path><circle cx='12' cy='7' r='4'></circle></svg>" alt="Vista Previa" style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid #cbd5e0; background: #edf2f7;">
+        </div>
+        <button type="button" id="btnAbrirCamara" class="btn-submit" style="background-color: #4a5568; margin-top: 0;">📸 Tomar Foto con Cámara</button>
+      </div>
+
+      <div class="form-group">
+        <label for="regPin">Creá tu PIN de Seguridad (4 dígitos)</label>
+        <input type="password" id="regPin" maxlength="4" placeholder="Ej: 1234" required>
+      </div>
+
+      <div id="msgRegistro" class="error-message"></div>
+
+      <button type="submit" id="btnGuardar" class="btn-submit">Crear Mi Cuenta</button>
+    </form>
+  </div>
+
+  <!-- Modal / Ventana Emergente de la Cámara -->
+  <div id="modalCamara" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index: 1000;">
+    <div style="background:white; padding:1.5rem; border-radius:12px; text-align:center; max-width:380px; width:90%;">
+      <h3>Capturar Foto</h3>
+      <p style="font-size: 0.85rem; color: #718096; margin-bottom: 10px;">Mirá a la cámara y presioná el botón</p>
+      
+      <!-- Transmisión de la Cámara -->
+      <video id="webcam" autoplay playsinline style="width: 100%; height: auto; border-radius: 8px; background: #000;"></video>
+      <canvas id="canvasFoto" style="display:none;"></canvas>
+
+      <div style="margin-top: 15px; display: flex; gap: 10px;">
+        <button id="btnCapturar" class="btn-submit" style="background:#38a169;">📷 Capturar</button>
+        <button id="btnCerrarCamara" class="btn-submit" style="background:#e53e3e;">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/registro.js"></script>
+</body>
+</html>

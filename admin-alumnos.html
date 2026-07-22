@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banco Escolar - Gestión de Alumnos</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <!-- Librería para generar códigos QR visuales en el navegador -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="logo">
+      <h2>Banco Escolar 🏦</h2>
+    </div>
+    <nav class="nav-links">
+      <a href="admin-dashboard.html">Tablero</a>
+      <a href="admin-alumnos.html" class="active">Gestión Alumnos</a>
+      <a href="cajero-dashboard.html">Caja / Recargas</a>
+    </nav>
+    <div class="user-info">
+      <span id="lblUsuario">Admin</span>
+      <button id="btnLogout" class="btn-logout">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <main class="dashboard-container">
+    <header class="page-header">
+      <h1>Gestión de Alumnos y Cuentas</h1>
+      <p>Registrá nuevos alumnos, asigná PINs de seguridad y generá sus códigos QR</p>
+    </header>
+
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem;">
+      
+      <!-- Formulario de Alta -->
+      <section class="card">
+        <h2>Nuevo Alumno</h2>
+        <form id="formAlumno" style="margin-top: 1rem;">
+          <div class="form-group">
+            <label for="dni">DNI / Identificación</label>
+            <input type="text" id="dni" placeholder="Ej: 45123456" required>
+          </div>
+
+          <div class="form-group">
+            <label for="nombre">Nombre y Apellido</label>
+            <input type="text" id="nombre" placeholder="Ej: Juan Pérez" required>
+          </div>
+
+          <div class="form-group">
+            <label for="curso">Curso / Grado</label>
+            <input type="text" id="curso" placeholder="Ej: 5to 2da" required>
+          </div>
+
+          <div class="form-group">
+            <label for="pin">PIN Validador (4 dígitos)</label>
+            <input type="password" id="pin" maxlength="4" placeholder="Ej: 1234" required>
+          </div>
+
+          <div id="msgAlumno" class="error-message" style="margin-bottom: 10px;"></div>
+
+          <button type="submit" class="btn-submit">Registrar Alumno</button>
+        </form>
+      </section>
+
+      <!-- Tabla de Alumnos -->
+      <section class="card">
+        <h2>Alumnos Registrados</h2>
+        <div style="margin-bottom: 10px; margin-top: 10px;">
+          <input type="text" id="txtBuscar" placeholder="🔍 Buscar por DNI o Nombre..." style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 4px;">
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>DNI</th>
+              <th>Nombre</th>
+              <th>Curso</th>
+              <th>Saldo</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tblAlumnos">
+            <tr><td colspan="5" class="text-center">Cargando...</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal para ver e imprimir QR -->
+  <div id="modalQR" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center;">
+    <div style="background:white; padding:2rem; border-radius:8px; text-align:center; max-width:300px; width:100%;">
+      <h3 id="qrNombre">Alumno</h3>
+      <p id="qrDni" style="color:#718096; font-size:0.9rem; margin-bottom:1rem;"></p>
+      
+      <!-- LUGAR DONDE SE DIBUJA EL QR -->
+      <div id="qrcode" style="display:flex; justify-content:center; margin-bottom:1rem;"></div>
+      
+      <button onclick="imprimirQR()" class="btn-submit" style="background:#2b6cb0; margin-bottom: 5px;">Imprimir / Guardar</button>
+      <button onclick="cerrarModalQR()" class="btn-submit" style="background:#e53e3e;">Cerrar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/alumnos.js"></script>
+</body>
+</html>

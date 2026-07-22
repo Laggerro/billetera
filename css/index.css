@@ -1,0 +1,98 @@
+* {
+  box-sizing: border-box;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.login-card {
+  background: #ffffff;
+  padding: 35px 30px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-header h2 {
+  margin-bottom: 8px;
+  color: #1a202c;
+  font-size: 1.5rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.login-header p {
+  margin-bottom: 25px;
+  color: #718096;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+/* Espaciado mejorado entre form-groups */
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: #4a5568;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #2d3748;
+  outline: none;
+  transition: all 0.2s ease-in-out;
+}
+
+.form-group input:focus {
+  border-color: #3182ce;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 12px;
+  background-color: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background-color 0.2s;
+}
+
+.btn-submit:hover {
+  background-color: #2b6cb0;
+}
+
+.error-message {
+  color: #e53e3e;
+  background-color: #fff5f5;
+  border: 1px solid #fed7d7;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 15px;
+  display: none;
+  text-align: center;
+}

@@ -3,97 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Banco Escolar - Enrolamiento de Tarjeta</title>
-  <link rel="stylesheet" href="css/index.css">
-  <!-- Librería gratuita para leer QR desde la cámara -->
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <title>Banco Escolar - Gestión de Alumnos</title>
+  <link rel="stylesheet" href="css/cajero.css">
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
 
-  <div class="login-card" style="max-width: 500px;">
-    <div class="login-header">
-      <h2>Asociar Tarjeta a Alumno 💳</h2>
-      <p>Escaneá la tarjeta y completá los datos</p>
-    </div>
+  <div id="navbar-container"></div>
 
-    <form id="formAltaCajero">
+  <main class="dashboard-container" style="max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px;">
+    
+    <!-- FICHA: FORMULARIO ALTA / EDICIÓN -->
+    <section class="card card-busqueda">
+      <h2 id="lblTituloForm">👤 Registrar Nuevo Alumno</h2>
+      <p class="text-subtitle" style="margin-bottom: 20px;">Completá los datos para dar de alta o actualizar la cuenta del alumno.</p>
       
-      <!-- Paso 1: Código de Tarjeta con botón de Escáner -->
-      <div class="form-group" style="background: #ebf8ff; padding: 12px; border-radius: 8px; border: 1px solid #bee3f8;">
-        <label for="txtCodigoQR" style="color: #2b6cb0;">1. Código / QR de la Tarjeta</label>
-        <div style="display: flex; gap: 8px; margin-top: 5px;">
-          <input type="text" id="txtCodigoQR" placeholder="Escribí o escaneá..." required autofocus style="flex: 1;">
-          <button type="button" id="btnEscanearQR" class="btn-submit" style="width: auto; margin-top: 0; background: #2b6cb0; padding: 0 12px;">📷 Leer QR</button>
+      <div id="msgAlta" style="display: none; margin-bottom: 15px;"></div>
+
+      <form id="formAltaAlumno">
+        <!-- CAMPO OCULTO PARA SABER SI ES EDICIÓN -->
+        <input type="hidden" id="alumnoId" value="">
+
+        <div class="form-group" style="text-align: center;">
+          <label>Foto de Perfil del Alumno</label>
+          <div style="margin: 10px 0;">
+            <img id="imgPreview" alt="Vista previa foto" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc;">
+          </div>
+          <button type="button" id="btnAbrirCamara" class="btn" style="background-color: #4a5568; color: white;">📸 Tomar Foto de Perfil</button>
         </div>
-      </div>
 
-      <!-- Paso 2: Datos del Alumno -->
-      <div class="form-group">
-        <label for="txtDni">DNI del Alumno</label>
-        <input type="text" id="txtDni" placeholder="Ej: 45123456" required>
-      </div>
-
-      <div class="form-group">
-        <label for="txtNombre">Nombre y Apellido</label>
-        <input type="text" id="txtNombre" placeholder="Ej: Lucas Gómez" required>
-      </div>
-
-      <div class="form-group">
-        <label for="txtCurso">Curso / Grado</label>
-        <input type="text" id="txtCurso" placeholder="Ej: 5to 2da" required>
-      </div>
-
-      <!-- Captura de Foto -->
-      <div class="form-group" style="text-align: center;">
-        <label>Foto del Alumno</label>
-        <div style="margin: 8px 0;">
-          <img id="imgPreview" src="" alt="Vista Previa" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #cbd5e0; background: #edf2f7;">
+        <div class="form-group">
+          <label for="txtDni">DNI / Documento Identificador</label>
+          <input type="text" id="txtDni" placeholder="Ej: 45123456" required>
         </div>
-        <button type="button" id="btnAbrirCamara" class="btn-submit" style="background-color: #4a5568; margin-top: 0; padding: 8px;">📸 Tomar Foto Perfil</button>
+
+        <div class="form-group">
+          <label for="txtNombre">Nombre y Apellido</label>
+          <input type="text" id="txtNombre" placeholder="Ej: Juan Pérez" required>
+        </div>
+
+        <div class="form-group">
+          <label for="txtCurso">Curso / Grado / División</label>
+          <select id="txtCurso" required style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+            <option value="">Cargando cursos...</option>
+          </select>
+        </div>
+
+        <div class="form-group pin-box">
+          <label for="txtPin">PIN de Seguridad (4 dígitos)</label>
+          <input type="password" id="txtPin" maxlength="4" placeholder="****">
+          <small id="helpPin" style="color: #718096; display: none;">(Dejar en blanco para mantener el PIN actual)</small>
+        </div>
+
+        <div class="form-group">
+          <label for="txtCodigoQr">Código QR / ID Tarjeta (Escanear o ingresar)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="txtCodigoQr" placeholder="Escanear tarjeta pre-impresa..." style="flex: 1;">
+            <button type="button" id="btnEscanearQR" class="btn" style="background-color: #2b6cb0; color: white; white-space: nowrap;">📷 Escanear QR</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 15px;">
+          <button type="submit" id="btnGuardar" class="btn btn-primary" style="flex: 1;">Registrar Alumno</button>
+          <button type="button" id="btnCancelarEdicion" class="btn" style="display: none; background: #e53e3e; color: white;">Cancelar</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- FICHA: LISTADO Y BÚSQUEDA DE ALUMNOS -->
+    <section class="card">
+      <h2>📋 Listado y Gestión de Alumnos</h2>
+      <div style="margin: 15px 0;">
+        <input type="text" id="txtBuscarTabla" placeholder="🔍 Buscar por Nombre, DNI o QR..." style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
       </div>
 
-      <!-- Paso 3: PIN Secreto -->
-      <div class="form-group" style="background: #fffaf0; padding: 12px; border-radius: 8px; border: 1px solid #feebc8; margin-top: 15px;">
-        <label for="txtPin" style="color: #c05621;">🔒 Entregar teclado al Alumno (PIN de 4 dígitos)</label>
-        <input type="password" id="txtPin" maxlength="4" placeholder="****" required style="text-align: center; font-size: 1.2rem; letter-spacing: 5px;">
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+          <thead>
+            <tr style="background: #f7fafc; text-align: left; border-bottom: 2px solid #e2e8f0;">
+              <th style="padding: 8px;">Foto</th>
+              <th style="padding: 8px;">Alumno</th>
+              <th style="padding: 8px;">DNI</th>
+              <th style="padding: 8px;">Curso</th>
+              <th style="padding: 8px;">QR</th>
+              <th style="padding: 8px; text-align: center;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tblAlumnos">
+            <tr><td colspan="6" style="text-align: center; padding: 15px;">Cargando alumnos...</td></tr>
+          </tbody>
+        </table>
       </div>
+    </section>
 
-      <div id="msgAlta" class="error-message"></div>
+  </main>
 
-      <button type="submit" id="btnGuardar" class="btn-submit" style="background-color: #2b6cb0; margin-top: 15px;">
-         Registrar y Vincular Tarjeta
-      </button>
-    </form>
-  </div>
-
-  <!-- Modal para la Cámara del Perfil -->
-  <div id="modalCamara" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index: 1000;">
-    <div style="background:white; padding:1.5rem; border-radius:12px; text-align:center; max-width:380px; width:90%;">
-      <h3>Capturar Foto de Perfil</h3>
-      <video id="webcam" autoplay playsinline style="width: 100%; border-radius: 8px; background: #000; margin: 10px 0;"></video>
-      <canvas id="canvasFoto" style="display:none;"></canvas>
-      <div style="display: flex; gap: 10px;">
-        <button id="btnCapturar" class="btn-submit" style="background:#38a169;">📷 Capturar</button>
-        <button id="btnCerrarCamara" class="btn-submit" style="background:#e53e3e;">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal para Lector de QR -->
-  <div id="modalLectorQR" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); justify-content:center; align-items:center; z-index: 1000;">
-    <div style="background:white; padding:1.5rem; border-radius:12px; text-align:center; max-width:380px; width:90%;">
+  <!-- MODAL ESCÁNER QR -->
+  <div id="modalLectorQR" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 350px; width: 90%; text-align: center;">
       <h3>Escanear Código QR</h3>
-      <p style="font-size:0.85rem; color:#718096; margin-bottom:10px;">Apunta la cámara al QR de la tarjeta</p>
-      
-      <!-- Visor de Html5Qrcode -->
-      <div id="reader" style="width: 100%;"></div>
+      <div id="reader" style="width: 100%; margin-top: 10px;"></div>
+      <button type="button" id="btnCerrarLectorQR" class="btn" style="margin-top: 15px; background: #e53e3e; color: white; width: 100%;">Cancelar / Cerrar</button>
+    </div>
+  </div>
 
-      <button id="btnCerrarLectorQR" class="btn-submit" style="background:#e53e3e; margin-top: 10px;">Cancelar</button>
+  <!-- MODAL CÁMARA FOTO -->
+  <div id="modalCamara" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 20px; border-radius: 8px; max-width: 400px; width: 90%; text-align: center;">
+      <h3>Capturar Foto de Perfil</h3>
+      <video id="webcam" autoplay playsinline style="width: 100%; max-height: 250px; background: #000; border-radius: 4px; margin-top: 10px;"></video>
+      <canvas id="canvasFoto" style="display: none;"></canvas>
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button type="button" id="btnCapturar" class="btn" style="background: #38a169; color: white; flex: 1;">Tomar Foto</button>
+        <button type="button" id="btnCerrarCamara" class="btn" style="background: #e53e3e; color: white; flex: 1;">Cancelar</button>
+      </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabaseClient.js"></script>
+  <script src="js/navbar.js"></script>
   <script src="js/alta-alumno.js"></script>
 </body>
 </html>

@@ -4,26 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Banco Escolar - Tablero de Control</title>
-  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/cajero.css">
 </head>
 <body>
 
-  <!-- Barra de Navegación Principal -->
-  <header class="navbar">
-    <div class="logo">
-      <h2>Banco Escolar 🏦</h2>
-    </div>
-    <nav class="nav-links">
-      <a href="admin-dashboard.html" class="active">Tablero</a>
-      <a href="admin-alumnos.html">Gestión Alumnos</a>
-      <a href="cajero-dashboard.html">Caja / Recargas</a>
-      <a href="admin-posnets.html">Posnets / Stands</a>
-    </nav>
-    <div class="user-info">
-      <span id="lblUsuario">Admin</span>
-      <button id="btnLogout" class="btn-logout">Cerrar Sesión</button>
-    </div>
-  </header>
+  <div id="navbar-container"></div>
 
   <main class="dashboard-container">
     <header class="page-header">
@@ -31,32 +16,27 @@
       <p>Métricas generales e indicadores de la feria escolar</p>
     </header>
 
-    <!-- Tarjetas de Métricas Principales (KPIs) -->
     <section class="metrics-grid">
       <div class="card metric-card">
         <h3>Total Dinero Acreditado</h3>
         <p class="metric-value" id="kpiIngresos">$0.00</p>
         <span class="metric-sub">Total cargado por cajeros</span>
       </div>
-
       <div class="card metric-card">
         <h3>Total Gastado en Stands</h3>
         <p class="metric-value text-danger" id="kpiEgresos">$0.00</p>
         <span class="metric-sub">Total cobrado vía QR</span>
       </div>
-
       <div class="card metric-card">
         <h3>Saldo Disponible Circulante</h3>
         <p class="metric-value text-success" id="kpiSaldoCirculante">$0.00</p>
         <span class="metric-sub">Dinero aún en cuentas</span>
       </div>
-
       <div class="card metric-card">
         <h3>Alumnos Registrados</h3>
         <p class="metric-value" id="kpiAlumnos">0</p>
         <span class="metric-sub">Cuentas activas</span>
       </div>
-
       <div class="card metric-card">
         <h3>Stands / Posnets Activos</h3>
         <p class="metric-value" id="kpiPosnets">0</p>
@@ -64,7 +44,6 @@
       </div>
     </section>
 
-    <!-- Vista de Últimas Movimientos -->
     <section class="transactions-section">
       <div class="card">
         <h2>Últimas Transacciones del Sistema</h2>
@@ -89,9 +68,9 @@
     </section>
   </main>
 
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabaseClient.js"></script>
+  <script src="js/navbar.js"></script>
   <script src="js/dashboard.js"></script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+/* Dashboard.css  */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -10,28 +11,6 @@ body {
   color: #2d3748;
 }
 
-/* Navbar */
-.navbar {
-  background-color: #1a365d;
-  color: white;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-}
-
-.nav-links a {
-  color: #cbd5e0;
-  text-decoration: none;
-  margin: 0 15px;
-  font-weight: bold;
-}
-
-.nav-links a.active, .nav-links a:hover {
-  color: #ffffff;
-  border-bottom: 2px solid #63b3ed;
-  padding-bottom: 4px;
-}
 
 .user-info {
   display: flex;

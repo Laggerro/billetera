@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Control de Seguridad: Verificar Sesión Activa
+  // Control de Seguridad
   const sessionData = sessionStorage.getItem('session');
   if (!sessionData) {
     window.location.href = 'index.html';
@@ -7,44 +7,52 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const session = JSON.parse(sessionData);
-  document.getElementById('lblUsuario').innerText = `${session.nombre} (${session.rol})`;
+  const lblUsuario = document.getElementById('lblUsuario');
+  if (lblUsuario) lblUsuario.innerText = `${session.nombre || session.usuario} (${session.rol})`;
 
-  // Botón de Cerrar Sesión
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    sessionStorage.clear();
-    window.location.href = 'index.html';
-  });
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout) {
+    btnLogout.addEventListener('click', () => {
+      sessionStorage.clear();
+      window.location.href = 'index.html';
+    });
+  }
 
-  // 2. Cargar Métricas y Tablas
   await cargarMetricas();
   await cargarUltimasTransacciones();
 });
 
 async function cargarMetricas() {
   try {
-    // A. Consultar total de Alumnos y Saldo Circulante
-    const { data: alumnos, error: errAlumnos } = await window._supabase
+    const client = window._supabase || supabase;
+
+    // Alumnos y Saldo
+    const { data: alumnos, error: errAlumnos } = await client
       .from('alumnos')
       .select('saldo');
 
     if (!errAlumnos && alumnos) {
-      document.getElementById('kpiAlumnos').innerText = alumnos.length;
+      const kpiAlumnos = document.getElementById('kpiAlumnos');
+      const kpiSaldo = document.getElementById('kpiSaldoCirculante');
+
+      if (kpiAlumnos) kpiAlumnos.innerText = alumnos.length;
       const saldoTotal = alumnos.reduce((sum, item) => sum + Number(item.saldo || 0), 0);
-      document.getElementById('kpiSaldoCirculante').innerText = `$${saldoTotal.toFixed(2)}`;
+      if (kpiSaldo) kpiSaldo.innerText = `$${saldoTotal.toFixed(2)}`;
     }
 
-    // B. Consultar total de Posnets/Stands activos
-    const { count: countPosnets, error: errPosnets } = await window._supabase
+    // Posnets
+    const { count: countPosnets, error: errPosnets } = await client
       .from('postnets')
       .select('*', { count: 'exact', head: true })
       .eq('activo', true);
 
     if (!errPosnets) {
-      document.getElementById('kpiPosnets').innerText = countPosnets || 0;
+      const kpiPosnets = document.getElementById('kpiPosnets');
+      if (kpiPosnets) kpiPosnets.innerText = countPosnets || 0;
     }
 
-    // C. Consultar Transacciones para sumar Ingresos (RECARGA) y Egresos (COBRO)
-    const { data: transacciones, error: errTrans } = await window._supabase
+    // Transacciones
+    const { data: transacciones, error: errTrans } = await client
       .from('transacciones')
       .select('monto, tipo, estado');
 
@@ -55,14 +63,15 @@ async function cargarMetricas() {
       transacciones.forEach(t => {
         if (t.estado === 'OK') {
           if (t.tipo === 'RECARGA') totalIngresos += Number(t.monto);
-          if (t.tipo === 'COBRO') totalEgresos += Number(t.monto);
+          if (t.tipo === 'COBRO' || t.tipo === 'EXTRACCION') totalEgresos += Number(t.monto);
         }
       });
 
-      document.getElementById('kpiIngresos').innerText = `$${totalIngresos.toFixed(2)}`;
-      document.getElementById('kpiEgresos').innerText = `$${totalEgresos.toFixed(2)}`;
+      const kpiIngresos = document.getElementById('kpiIngresos');
+      const kpiEgresos = document.getElementById('kpiEgresos');
+      if (kpiIngresos) kpiIngresos.innerText = `$${totalIngresos.toFixed(2)}`;
+      if (kpiEgresos) kpiEgresos.innerText = `$${totalEgresos.toFixed(2)}`;
     }
-
   } catch (e) {
     console.error("Error al obtener métricas:", e);
   }
@@ -70,9 +79,11 @@ async function cargarMetricas() {
 
 async function cargarUltimasTransacciones() {
   const tbody = document.getElementById('tblTransacciones');
-  
+  if (!tbody) return;
+
   try {
-    const { data, error } = await window._supabase
+    const client = window._supabase || supabase;
+    const { data, error } = await client
       .from('transacciones')
       .select(`
         id,
@@ -81,7 +92,7 @@ async function cargarUltimasTransacciones() {
         tipo,
         estado,
         fecha_hora,
-        postnets ( nombre_stand )
+        postnets (nombre_stand)
       `)
       .order('fecha_hora', { ascending: false })
       .limit(10);
@@ -97,7 +108,6 @@ async function cargarUltimasTransacciones() {
       const fecha = new Date(t.fecha_hora).toLocaleString('es-AR');
       const badgeClass = t.tipo === 'RECARGA' ? 'badge-recarga' : 'badge-cobro';
       const standNombre = t.postnets ? t.postnets.nombre_stand : 'Caja Principal';
-
       return `
         <tr>
           <td>${fecha}</td>

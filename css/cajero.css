@@ -1,0 +1,378 @@
+/* RESET Y FUENTES GENERALES */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+  background-color: #f0f4f8;
+  color: #2d3748;
+}
+
+/* NAVBAR UNIFICADA */
+.navbar {
+  background-color: #1a365d;
+  color: white;
+  padding: 0.8rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.navbar .logo h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.navbar .logo span {
+  font-size: 0.85rem;
+  color: #63b3ed;
+  font-weight: 400;
+}
+
+.nav-links {
+  display: flex;
+  gap: 10px;
+}
+
+.nav-btn {
+  color: #e2e8f0;
+  text-decoration: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+}
+
+.nav-btn.active {
+  background: #3182ce;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.nav-btn.hidden {
+  display: none !important;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lbl-user {
+  font-size: 0.9rem;
+  color: #e2e8f0;
+  font-weight: 500;
+}
+
+.btn-logout {
+  background-color: #e53e3e;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.85rem;
+}
+
+.btn-logout:hover {
+  background-color: #c53030;
+}
+
+/* LAYOUT GENERAL Y ENCABEZADOS */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h1 {
+  color: #1a365d;
+  font-size: 1.8rem;
+}
+
+.page-header p {
+  color: #718096;
+}
+
+/* SISTEMA DE TARJETAS Y FICHAS */
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-left: 6px solid #cbd5e0;
+}
+
+/* COLORES POR TIPO DE FICHA */
+.card-busqueda {
+  border-left-color: #3182ce;
+  background: #f7fafc;
+  margin-bottom: 1.5rem;
+}
+
+.card-busqueda h2 {
+  color: #2b6cb0;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+}
+
+.card-perfil {
+  border-left-color: #4a5568;
+  text-align: center;
+  background: #ffffff;
+}
+
+.card-recarga {
+  border-left-color: #38a169;
+  background: #f0fff4;
+}
+
+.card-recarga h3 {
+  color: #276749;
+  margin-bottom: 12px;
+}
+
+.card-extraccion {
+  border-left-color: #e53e3e;
+  background: #fff5f5;
+}
+
+.card-extraccion h3 {
+  color: #9b2c2c;
+  margin-bottom: 12px;
+}
+
+.card-pin {
+  border-left-color: #dd6b20;
+  background: #fffaf0;
+}
+
+.card-pin h3 {
+  color: #9c4221;
+  margin-bottom: 12px;
+}
+
+/* FORMULARIOS, INPUTS Y BUSCADORES */
+.search-box {
+  display: flex;
+  gap: 10px;
+}
+
+.search-box input {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid #cbd5e0;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.form-group {
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #4a5568;
+}
+
+.form-group input {
+  padding: 10px;
+  border: 1px solid #cbd5e0;
+  border-radius: 6px;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.pin-box input {
+  text-align: center;
+  letter-spacing: 6px;
+  font-weight: bold;
+}
+
+/* PERFIL DE ALUMNO Y METRICAS */
+.panel-alumno {
+  display: none;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+}
+
+.operaciones-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.avatar-container img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #cbd5e0;
+  margin-bottom: 10px;
+}
+
+.text-subtitle {
+  color: #718096;
+  font-size: 0.95rem;
+  margin-bottom: 10px;
+}
+
+.meta-info {
+  background: #edf2f7;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #4a5568;
+  margin-bottom: 15px;
+}
+
+.saldo-box {
+  background: #e6fffa;
+  border: 1px solid #b2f5ea;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.saldo-label {
+  font-size: 0.8rem;
+  color: #234e52;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+.saldo-box h1 {
+  color: #234e52;
+  font-size: 2.2rem;
+  margin-top: 5px;
+}
+
+/* BOTONES */
+.btn, .btn-submit {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: opacity 0.2s ease;
+  display: inline-block;
+  text-align: center;
+}
+
+.btn:hover, .btn-submit:hover { opacity: 0.9; }
+
+.btn-primary, .btn-submit { background-color: #3182ce; color: white; }
+.btn-dark { background-color: #4a5568; color: white; }
+.btn-success { background-color: #38a169; color: white; width: 100%; }
+.btn-danger { background-color: #e53e3e; color: white; width: 100%; }
+.btn-warning { background-color: #dd6b20; color: white; width: 100%; }
+
+/* TABLEROS KPI Y TABLAS (ADMIN) */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  border-left-color: #3182ce;
+}
+
+.metric-card h3 {
+  font-size: 0.85rem;
+  color: #718096;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #2b6cb0;
+  margin-bottom: 4px;
+}
+
+.metric-sub {
+  font-size: 0.75rem;
+  color: #718096;
+}
+
+.text-danger { color: #e53e3e; }
+.text-success { color: #38a169; }
+.text-center { text-align: center; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.data-table th, .data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.data-table th {
+  background-color: #f7fafc;
+  color: #4a5568;
+}
+
+/* MODALES Y OVERLAYS */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  max-width: 380px;
+  width: 90%;
+}
+
+.error-message {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  margin-top: 5px;
+}
+
+/* RESPONSIVO */
+@media (max-width: 768px) {
+  .panel-alumno { grid-template-columns: 1fr; }
+  .search-box { flex-direction: column; }
+}

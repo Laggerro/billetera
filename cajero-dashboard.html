@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banco Escolar - Módulo de Cajero</title>
+  <link rel="stylesheet" href="css/cajero.css">
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+  <div id="navbar-container"></div>
+
+  <main class="dashboard-container">
+    <!-- Ficha 1: Buscador -->
+    <section class="card card-busqueda">
+      <h2>🔍 Buscar Cuenta de Alumno</h2>
+      <div class="search-box">
+        <input type="text" id="txtBuscarDni" placeholder="Escaneá la tarjeta QR o ingresá el DNI..." autofocus>
+        <button id="btnBuscar" class="btn btn-primary">Buscar</button>
+        <button id="btnEscanearQR" class="btn btn-dark">📷 Cámara QR</button>
+      </div>
+    </section>
+
+    <!-- Panel Alumno -->
+    <div id="panelAlumno" class="panel-alumno">
+      <!-- Ficha 2: Perfil -->
+      <section class="card card-perfil">
+        <div class="avatar-container">
+          <img id="imgAlumno" src="" alt="Foto de perfil">
+        </div>
+        <h2 id="lblNombre">-</h2>
+        <p id="lblCurso" class="text-subtitle">-</p>
+        <div class="meta-info">
+          <p>DNI: <span id="lblDni"></span></p>
+          <p>QR: <span id="lblQR"></span></p>
+        </div>
+        <div class="saldo-box">
+          <span class="saldo-label">Saldo Actual</span>
+          <h1 id="lblSaldo">$0.00</h1>
+        </div>
+      </section>
+
+      <!-- Operaciones -->
+      <div class="operaciones-grid">
+        <!-- Recarga -->
+        <section class="card card-recarga">
+          <h3>💵 Acreditar Dinero (Efectivo)</h3>
+          <form id="formRecarga">
+            <div class="form-group">
+              <label for="montoRecarga">Monto a cargar ($)</label>
+              <input type="number" id="montoRecarga" min="1" step="0.5" placeholder="Ej: 500.00" required>
+            </div>
+            <button type="submit" id="btnAcreditar" class="btn btn-success">Acreditar Saldo</button>
+          </form>
+        </section>
+
+        <!-- Extracción -->
+        <section class="card card-extraccion" id="secExtraccion">
+          <h3>💸 Extracción / Retiro de Efectivo</h3>
+          <form id="formExtraccion">
+            <div class="form-group">
+              <label for="montoExtraccion">Monto a retirar ($)</label>
+              <input type="number" id="montoExtraccion" min="1" step="0.5" placeholder="Ej: 200.00" required>
+            </div>
+            <div class="form-group pin-box">
+              <label for="pinExtraccion">🔒 PIN de Autorización del Alumno</label>
+              <input type="password" id="pinExtraccion" maxlength="4" placeholder="****" required>
+            </div>
+            <button type="submit" id="btnExtraer" class="btn btn-danger">Confirmar Extracción</button>
+          </form>
+        </section>
+
+        <!-- PIN -->
+        <section class="card card-pin">
+          <h3>🔑 Blanqueo / Restauración de PIN</h3>
+          <form id="formResetPin">
+            <div class="form-group pin-box">
+              <label for="nuevoPin">Nuevo PIN (4 dígitos del alumno)</label>
+              <input type="password" id="nuevoPin" maxlength="4" placeholder="****" required>
+            </div>
+            <button type="submit" id="btnCambiarPin" class="btn btn-warning">Restaurar PIN</button>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div id="modalLectorQR" class="modal-overlay">
+    <div class="modal-content">
+      <h3>Escanear Código QR</h3>
+      <div id="reader"></div>
+      <button id="btnCerrarLectorQR" class="btn btn-danger">Cancelar</button>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabaseClient.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/cajero.js"></script>
+</body>
+</html>

@@ -3,162 +3,388 @@ const SVG_DEFAULT = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/
 
 let fotoBlobCapturada = null;
 let videoStream = null;
-
-// Agregar estas variables arriba en js/alta-alumno.js
 let html5QrcodeScanner = null;
+let listaAlumnosCache = []; // Cache local para la búsqueda rápida
 
-// Lógica para Abrir el Escáner QR
-document.getElementById('btnEscanearQR').addEventListener('click', () => {
-  const modalLector = document.getElementById('modalLectorQR');
-  modalLector.style.display = 'flex';
-
-  html5QrcodeScanner = new Html5Qrcode("reader");
-  
-  html5QrcodeScanner.start(
-    { facingMode: "environment" }, // Usa la cámara trasera en móviles o la webcam en PC
-    {
-      fps: 10,
-      qrbox: { width: 220, height: 220 }
-    },
-    (qrCodeMessage) => {
-      // Éxito: Lectura detectada
-      document.getElementById('txtCodigoQR').value = qrCodeMessage;
-      cerrarLectorQR();
-    },
-    (errorMessage) => {
-      // Búsqueda en progreso (no necesario hacer nada)
-    }
-  ).catch(err => {
-    alert("Error al iniciar el lector de QR: " + err);
-    cerrarLectorQR();
-  });
-});
-
-document.getElementById('btnCerrarLectorQR').addEventListener('click', cerrarLectorQR);
-
-function cerrarLectorQR() {
-  if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop().then(() => {
-      html5QrcodeScanner.clear();
-      document.getElementById('modalLectorQR').style.display = 'none';
-    }).catch(err => console.error(err));
-  } else {
-    document.getElementById('modalLectorQR').style.display = 'none';
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const imgPreview = document.getElementById('imgPreview');
   if (imgPreview) imgPreview.src = SVG_DEFAULT;
 
-  // Cámara
-  document.getElementById('btnAbrirCamara').addEventListener('click', async () => {
-    try {
-      videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 400 }, audio: false });
-      document.getElementById('webcam').srcObject = videoStream;
-      document.getElementById('modalCamara').style.display = 'flex';
-    } catch (err) {
-      alert("Error al abrir la cámara.");
+  // 0. CARGAR COMBOS Y TABLA
+  await cargarComboCursos();
+  await cargarTablaAlumnos();
+
+  // Evento de búsqueda en tiempo real
+  const txtBuscarTabla = document.getElementById('txtBuscarTabla');
+  if (txtBuscarTabla) {
+    txtBuscarTabla.addEventListener('input', filtrarTablaAlumnos);
+  }
+
+  // Cancelar edición
+  const btnCancelarEdicion = document.getElementById('btnCancelarEdicion');
+  if (btnCancelarEdicion) {
+    btnCancelarEdicion.addEventListener('click', resetFormulario);
+  }
+
+  // 1. ESCÁNER QR OPTIMIZADO
+  const btnEscanearQR = document.getElementById('btnEscanearQR');
+  if (btnEscanearQR) {
+    btnEscanearQR.addEventListener('click', () => {
+      const modalLector = document.getElementById('modalLectorQR');
+      if (modalLector) modalLector.style.display = 'flex';
+
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+      }
+
+      html5QrcodeScanner = new Html5Qrcode("reader");
+
+      const config = {
+        fps: 25,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          return {
+            width: Math.floor(minEdge * 0.85),
+            height: Math.floor(minEdge * 0.85)
+          };
+        },
+        aspectRatio: 1.0
+      };
+
+      const cameraConfig = { 
+        facingMode: { ideal: "environment" },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      };
+
+      html5QrcodeScanner.start(
+        cameraConfig,
+        config,
+        (qrCodeMessage) => {
+          const txtCodigoQR = document.getElementById('txtCodigoQr');
+          if (txtCodigoQR) txtCodigoQR.value = qrCodeMessage;
+          cerrarLectorQR();
+        },
+        () => {}
+      ).catch(err => {
+        html5QrcodeScanner.start(
+          { fps: 25 },
+          config,
+          (qrCodeMessage) => {
+            const txtCodigoQR = document.getElementById('txtCodigoQr');
+            if (txtCodigoQR) txtCodigoQR.value = qrCodeMessage;
+            cerrarLectorQR();
+          },
+          () => {}
+        ).catch(finalErr => {
+          alert("Error al iniciar el lector de QR: " + finalErr);
+          cerrarLectorQR();
+        });
+      });
+    });
+  }
+
+  const btnCerrarLector = document.getElementById('btnCerrarLectorQR');
+  if (btnCerrarLector) {
+    btnCerrarLector.addEventListener('click', cerrarLectorQR);
+  }
+
+  function cerrarLectorQR() {
+    const modalLector = document.getElementById('modalLectorQR');
+    if (html5QrcodeScanner) {
+      html5QrcodeScanner.stop().then(() => {
+        html5QrcodeScanner.clear();
+        if (modalLector) modalLector.style.display = 'none';
+      }).catch(err => {
+        console.error(err);
+        if (modalLector) modalLector.style.display = 'none';
+      });
+    } else if (modalLector) {
+      modalLector.style.display = 'none';
     }
-  });
+  }
 
-  document.getElementById('btnCapturar').addEventListener('click', () => {
-    const video = document.getElementById('webcam');
-    const canvas = document.getElementById('canvasFoto');
-    const context = canvas.getContext('2d');
-    canvas.width = video.videoWidth || 300;
-    canvas.height = video.videoHeight || 300;
-    
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    canvas.toBlob((blob) => {
-      fotoBlobCapturada = blob;
-      imgPreview.src = URL.createObjectURL(blob);
-      cerrarCamara();
-    }, 'image/jpeg', 0.85);
-  });
+  // 2. WEBCAM FOTO PERFIL
+  const btnAbrirCamara = document.getElementById('btnAbrirCamara');
+  if (btnAbrirCamara) {
+    btnAbrirCamara.addEventListener('click', async () => {
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 400 }, audio: false });
+        const webcam = document.getElementById('webcam');
+        if (webcam) webcam.srcObject = videoStream;
+        const modalCamara = document.getElementById('modalCamara');
+        if (modalCamara) modalCamara.style.display = 'flex';
+      } catch (err) {
+        alert("Error al abrir la cámara.");
+      }
+    });
+  }
 
-  document.getElementById('btnCerrarCamara').addEventListener('click', cerrarCamara);
+  const btnCapturar = document.getElementById('btnCapturar');
+  if (btnCapturar) {
+    btnCapturar.addEventListener('click', () => {
+      const video = document.getElementById('webcam');
+      const canvas = document.getElementById('canvasFoto');
+      if (!video || !canvas) return;
+      const context = canvas.getContext('2d');
+      canvas.width = video.videoWidth || 300;
+      canvas.height = video.videoHeight || 300;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        fotoBlobCapturada = blob;
+        if (imgPreview) imgPreview.src = URL.createObjectURL(blob);
+        cerrarCamara();
+      }, 'image/jpeg', 0.85);
+    });
+  }
+
+  const btnCerrarCamara = document.getElementById('btnCerrarCamara');
+  if (btnCerrarCamara) {
+    btnCerrarCamara.addEventListener('click', cerrarCamara);
+  }
 
   function cerrarCamara() {
     if (videoStream) videoStream.getTracks().forEach(track => track.stop());
-    document.getElementById('modalCamara').style.display = 'none';
+    const modalCamara = document.getElementById('modalCamara');
+    if (modalCamara) modalCamara.style.display = 'none';
   }
 
-  // Submit de Alta
-  document.getElementById('formAltaCajero').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('btnGuardar');
-    btn.disabled = true;
+  // 3. SUBMIT / GUARDAR / ACTUALIZAR ALUMNO
+  const formAlta = document.getElementById('formAltaAlumno');
+  if (formAlta) {
+    formAlta.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnGuardar');
+      if (btn) btn.disabled = true;
 
-    const codigoQR = document.getElementById('txtCodigoQR').value.trim();
-    const dni = document.getElementById('txtDni').value.trim();
-    const nombre = document.getElementById('txtNombre').value.trim();
-    const curso = document.getElementById('txtCurso').value.trim();
-    const pin = document.getElementById('txtPin').value.trim();
+      const alumnoId = document.getElementById('alumnoId').value;
+      const txtCodigoQR = document.getElementById('txtCodigoQr');
+      const codigoQR = txtCodigoQR ? txtCodigoQR.value.trim() : '';
+      const dni = document.getElementById('txtDni').value.trim();
+      const nombre = document.getElementById('txtNombre').value.trim();
+      const curso = document.getElementById('txtCurso').value.trim();
+      const pin = document.getElementById('txtPin').value.trim();
 
-    if (pin.length !== 4 || isNaN(pin)) {
-      mostrarError("El PIN debe ser de 4 dígitos numéricos.");
-      btn.disabled = false;
-      return;
-    }
-
-    let urlFoto = `https://api.dicebear.com/7.x/bottts/svg?seed=${dni}`;
-
-    try {
-      if (fotoBlobCapturada) {
-        btn.innerText = "Subiendo foto...";
-        const formData = new FormData();
-        formData.append('image', fotoBlobCapturada);
-
-        const resImgBB = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-          method: 'POST',
-          body: formData
-        });
-        const dataImgBB = await resImgBB.json();
-        if (dataImgBB.success) urlFoto = dataImgBB.data.url;
+      // Validación de PIN
+      if (!alumnoId && (pin.length !== 4 || isNaN(pin))) {
+        mostrarError("El PIN inicial debe ser obligatoriamente de 4 dígitos numéricos.");
+        if (btn) btn.disabled = false;
+        return;
       }
 
-      btn.innerText = "Guardando...";
-      const { error } = await window._supabase
-        .from('alumnos')
-        .insert([
-          { 
-            codigo_qr: codigoQR, 
-            dni: dni, 
-            nombre_apellido: nombre, 
-            curso: curso, 
-            foto_url: urlFoto, 
-            pin: pin, 
-            saldo: 0.00 
+      if (alumnoId && pin && (pin.length !== 4 || isNaN(pin))) {
+        mostrarError("El nuevo PIN debe tener 4 dígitos numéricos.");
+        if (btn) btn.disabled = false;
+        return;
+      }
+
+      let urlFoto = null;
+
+      try {
+        // Subida de foto a ImgBB si se capturó una nueva
+        if (fotoBlobCapturada) {
+          if (btn) btn.innerText = "Subiendo foto...";
+          const formData = new FormData();
+          formData.append('image', fotoBlobCapturada);
+          const resImgBB = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+            method: 'POST',
+            body: formData
+          });
+          const dataImgBB = await resImgBB.json();
+          if (dataImgBB.success) {
+            urlFoto = dataImgBB.data.url;
           }
-        ]);
-
-      if (error) {
-        if (error.code === '23505') {
-          mostrarError("El DNI o el Código de Tarjeta ya existen en el sistema.");
-        } else {
-          mostrarError("Error: " + error.message);
         }
-      } else {
-        alert(`¡Tarjeta asociadas con éxito a ${nombre}! Podés entregarle la tarjeta.`);
-        document.getElementById('formAltaCajero').reset();
-        imgPreview.src = SVG_DEFAULT;
-        fotoBlobCapturada = null;
-        document.getElementById('txtCodigoQR').focus(); // Listo para el siguiente
+
+        if (btn) btn.innerText = "Guardando...";
+        const client = window._supabase || supabase;
+
+        const payload = {
+          codigo_qr: codigoQR || null,
+          dni: dni,
+          nombre_apellido: nombre,
+          curso: curso
+        };
+
+        if (pin) payload.pin = pin;
+
+        let error;
+
+        if (alumnoId) {
+          // ACTUALIZACIÓN
+          if (urlFoto) payload.foto_url = urlFoto;
+          const idNumerico = parseInt(alumnoId, 10);
+          ({ error } = await client.from('alumnos').update(payload).eq('id', idNumerico));
+        } else {
+          // ALTA NUEVA
+          payload.foto_url = urlFoto || `https://api.dicebear.com/7.x/bottts/svg?seed=${dni}`;
+          payload.saldo = 0.00;
+          ({ error } = await client.from('alumnos').insert([payload]));
+        }
+
+        if (error) {
+          if (error.code === '23505') {
+            mostrarError("El DNI o el Código QR ya están registrados en otro alumno.");
+          } else {
+            mostrarError("Error: " + error.message);
+          }
+        } else {
+          alert(alumnoId ? `¡Alumno ${nombre} actualizado correctamente!` : `¡Alumno ${nombre} registrado con éxito!`);
+          resetFormulario();
+          await cargarTablaAlumnos();
+        }
+      } catch (err) {
+        console.error(err);
+        mostrarError("Ocurrió un error inesperado al procesar la solicitud.");
+      } finally {
+        if (btn) btn.disabled = false;
       }
-
-    } catch (err) {
-      console.error(err);
-      mostrarError("Ocurrió un error inesperado.");
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Registrar y Vincular Tarjeta";
-    }
-  });
-
-  function mostrarError(txt) {
-    const msgDiv = document.getElementById('msgAlta');
-    msgDiv.innerText = txt;
-    msgDiv.style.display = 'block';
+    });
   }
 });
+
+// ==========================================
+// FUNCIONES DE GESTIÓN DE TABLA Y CURSOS
+// ==========================================
+
+async function cargarComboCursos() {
+  const selectCurso = document.getElementById('txtCurso');
+  if (!selectCurso) return;
+
+  const client = window._supabase || supabase;
+  const { data: cursos, error } = await client.from('cursos').select('nombre').order('nombre');
+
+  if (!error && cursos && cursos.length > 0) {
+    selectCurso.innerHTML = '<option value="">-- Seleccionar Curso --</option>' + 
+      cursos.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+  } else {
+    selectCurso.innerHTML = '<option value="">Sin cursos registrados</option>';
+  }
+}
+
+async function cargarTablaAlumnos() {
+  const tbody = document.getElementById('tblAlumnos');
+  if (!tbody) return;
+
+  const client = window._supabase || supabase;
+  const { data, error } = await client.from('alumnos').select('*').order('nombre_apellido');
+
+  if (error) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red;">Error al cargar lista.</td></tr>`;
+    return;
+  }
+
+  listaAlumnosCache = data || [];
+  renderizarTabla(listaAlumnosCache);
+}
+
+function renderizarTabla(alumnos) {
+  const tbody = document.getElementById('tblAlumnos');
+  if (!tbody) return;
+
+  if (alumnos.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 15px;">No hay alumnos encontrados.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = alumnos.map(a => `
+    <tr style="border-bottom: 1px solid #e2e8f0;">
+      <td style="padding: 8px;">
+        <img src="${a.foto_url || SVG_DEFAULT}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+      </td>
+      <td style="padding: 8px;"><b>${a.nombre_apellido}</b></td>
+      <td style="padding: 8px;">${a.dni}</td>
+      <td style="padding: 8px;">${a.curso || '-'}</td>
+      <td style="padding: 8px;"><small>${a.codigo_qr || 'Sin QR'}</small></td>
+      <td style="padding: 8px; text-align: center; white-space: nowrap;">
+        <button onclick="editarAlumno('${a.id}')" class="btn" style="padding: 3px 8px; font-size: 0.8rem; background: #3182ce; color: white;">✏️ Editar</button>
+        <button onclick="eliminarAlumno('${a.id}', '${a.nombre_apellido}')" class="btn" style="padding: 3px 8px; font-size: 0.8rem; background: #e53e3e; color: white;">🗑️ Baja</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filtrarTablaAlumnos(e) {
+  const filtro = e.target.value.toLowerCase().trim();
+  const filtrados = listaAlumnosCache.filter(a => 
+    (a.nombre_apellido || '').toLowerCase().includes(filtro) ||
+    (a.dni || '').toString().includes(filtro) ||
+    (a.codigo_qr || '').toLowerCase().includes(filtro)
+  );
+  renderizarTabla(filtrados);
+}
+
+function editarAlumno(id) {
+  const alumno = listaAlumnosCache.find(a => String(a.id) === String(id));
+  if (!alumno) return;
+
+  document.getElementById('alumnoId').value = alumno.id;
+  document.getElementById('txtDni').value = alumno.dni;
+  document.getElementById('txtNombre').value = alumno.nombre_apellido;
+  document.getElementById('txtCurso').value = alumno.curso || '';
+  document.getElementById('txtCodigoQr').value = alumno.codigo_qr || '';
+  
+  // PIN opcional en edición
+  const txtPin = document.getElementById('txtPin');
+  txtPin.value = '';
+  txtPin.required = false;
+  document.getElementById('helpPin').style.display = 'inline';
+
+  // Imagen de preview
+  const imgPreview = document.getElementById('imgPreview');
+  if (imgPreview) imgPreview.src = alumno.foto_url || SVG_DEFAULT;
+
+  // Cambiar botones e interfaz
+  document.getElementById('lblTituloForm').innerText = "✏️ Modificar Alumno";
+  document.getElementById('btnGuardar').innerText = "Actualizar Alumno";
+  document.getElementById('btnCancelarEdicion').style.display = "inline-block";
+
+  // Scroll suave al formulario
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function eliminarAlumno(id, nombre) {
+  if (!confirm(`¿Estás seguro de dar de baja al alumno "${nombre}"?\nEsta acción eliminará su cuenta y saldo registrado.`)) {
+    return;
+  }
+
+  const client = window._supabase || supabase;
+  const idNumerico = parseInt(id, 10);
+
+  const { error } = await client.from('alumnos').delete().eq('id', idNumerico);
+
+  if (error) {
+    alert("Error al eliminar alumno: " + error.message);
+  } else {
+    alert(`El alumno ${nombre} fue dado de baja correctamente.`);
+    await cargarTablaAlumnos();
+  }
+}
+
+function resetFormulario() {
+  document.getElementById('formAltaAlumno').reset();
+  document.getElementById('alumnoId').value = '';
+  fotoBlobCapturada = null;
+
+  const txtPin = document.getElementById('txtPin');
+  txtPin.required = true;
+  document.getElementById('helpPin').style.display = 'none';
+
+  const imgPreview = document.getElementById('imgPreview');
+  if (imgPreview) imgPreview.src = SVG_DEFAULT;
+
+  document.getElementById('lblTituloForm').innerText = "👤 Registrar Nuevo Alumno";
+  document.getElementById('btnGuardar').innerText = "Registrar Alumno";
+  document.getElementById('btnCancelarEdicion').style.display = "none";
+}
+
+function mostrarError(txt) {
+  const msgDiv = document.getElementById('msgAlta');
+  if (msgDiv) {
+    msgDiv.innerText = txt;
+    msgDiv.style.color = '#e53e3e';
+    msgDiv.style.display = 'block';
+  } else {
+    alert(txt);
+  }
+}

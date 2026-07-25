@@ -26,58 +26,62 @@ document.addEventListener('DOMContentLoaded', async () => {
     btnCancelarEdicion.addEventListener('click', resetFormulario);
   }
 
-  // 1. ESCÁNER QR OPTIMIZADO
+  // ==========================================
+  // 1. LÓGICA PARA ESCANEAR CÓDIGO QR (CORREGIDO)
+  // ==========================================
   const btnEscanearQR = document.getElementById('btnEscanearQR');
   if (btnEscanearQR) {
-    btnEscanearQR.addEventListener('click', () => {
+    btnEscanearQR.addEventListener('click', async () => {
+      // 🚨 Aseguramos cerrar la cámara de foto de perfil por si quedó abierta
+      cerrarCamara();
+
       const modalLector = document.getElementById('modalLectorQR');
       if (modalLector) modalLector.style.display = 'flex';
 
+      // Limpiamos instancia previa de QR
       if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear();
+        try {
+          await html5QrcodeScanner.stop();
+        } catch (e) { }
+        try {
+          html5QrcodeScanner.clear();
+        } catch (e) { }
       }
 
       html5QrcodeScanner = new Html5Qrcode("reader");
 
       const config = {
-        fps: 25,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          return {
-            width: Math.floor(minEdge * 0.85),
-            height: Math.floor(minEdge * 0.85)
-          };
-        },
+        fps: 20,
+        qrbox: { width: 250, height: 250 }, // Tamaño fijo estándar compatible con todo
         aspectRatio: 1.0
       };
 
-      const cameraConfig = { 
-        facingMode: { ideal: "environment" },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      };
-
+      // Intentamos usar la cámara trasera/entorno sin forzar resoluciones HD estrictas
       html5QrcodeScanner.start(
-        cameraConfig,
+        { facingMode: "environment" },
         config,
         (qrCodeMessage) => {
           const txtCodigoQR = document.getElementById('txtCodigoQr');
           if (txtCodigoQR) txtCodigoQR.value = qrCodeMessage;
           cerrarLectorQR();
         },
-        () => {}
+        () => { } // Ignorar errores de escaneo fotograma a fotograma
       ).catch(err => {
+        console.warn("No se pudo abrir cámara trasera, intentando cámara por defecto:", err);
+
+        // Fallback: Abre cualquier cámara disponible en el dispositivo (Webcam USB o frontal)
         html5QrcodeScanner.start(
-          { fps: 25 },
+          { facingMode: "user" },
           config,
           (qrCodeMessage) => {
             const txtCodigoQR = document.getElementById('txtCodigoQr');
             if (txtCodigoQR) txtCodigoQR.value = qrCodeMessage;
             cerrarLectorQR();
           },
-          () => {}
+          () => { }
         ).catch(finalErr => {
-          alert("Error al iniciar el lector de QR: " + finalErr);
+          console.error("Error definitivo al abrir cámara:", finalErr);
+          alert("Error al acceder a la cámara. Asegúrate de dar los permisos correspondientes o estar usando HTTPS.");
           cerrarLectorQR();
         });
       });
@@ -96,7 +100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         html5QrcodeScanner.clear();
         if (modalLector) modalLector.style.display = 'none';
       }).catch(err => {
-        console.error(err);
         if (modalLector) modalLector.style.display = 'none';
       });
     } else if (modalLector) {
@@ -104,18 +107,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // 2. WEBCAM FOTO PERFIL
+  // ==========================================
+  // 2. LÓGICA WEBCAM FOTO PERFIL (CORREGIDO)
+  // ==========================================
   const btnAbrirCamara = document.getElementById('btnAbrirCamara');
   if (btnAbrirCamara) {
     btnAbrirCamara.addEventListener('click', async () => {
+      // 🚨 Cerramos primero el lector QR por si acaso
+      cerrarLectorQR();
+
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 400 }, audio: false });
+        // Pedimos video flexible sin restricciones de resolución duras
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false
+        });
+
         const webcam = document.getElementById('webcam');
-        if (webcam) webcam.srcObject = videoStream;
+        if (webcam) {
+          webcam.srcObject = videoStream;
+          await webcam.play(); // Forzar reproducción del video en celulares
+        }
+
         const modalCamara = document.getElementById('modalCamara');
         if (modalCamara) modalCamara.style.display = 'flex';
       } catch (err) {
-        alert("Error al abrir la cámara.");
+        console.error("Error al abrir la cámara de fotos:", err);
+        alert("Error al abrir la cámara para la foto de perfil.");
       }
     });
   }
@@ -126,10 +144,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       const video = document.getElementById('webcam');
       const canvas = document.getElementById('canvasFoto');
       if (!video || !canvas) return;
+
       const context = canvas.getContext('2d');
       canvas.width = video.videoWidth || 300;
       canvas.height = video.videoHeight || 300;
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
       canvas.toBlob((blob) => {
         fotoBlobCapturada = blob;
         if (imgPreview) imgPreview.src = URL.createObjectURL(blob);
@@ -144,7 +164,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function cerrarCamara() {
-    if (videoStream) videoStream.getTracks().forEach(track => track.stop());
+    if (videoStream) {
+      // Detenemos explícitamente la cámara para liberar el hardware del teléfono/PC
+      videoStream.getTracks().forEach(track => {
+        track.stop();
+      });
+      videoStream = null;
+    }
     const modalCamara = document.getElementById('modalCamara');
     if (modalCamara) modalCamara.style.display = 'none';
   }
@@ -255,7 +281,7 @@ async function cargarComboCursos() {
   const { data: cursos, error } = await client.from('cursos').select('nombre').order('nombre');
 
   if (!error && cursos && cursos.length > 0) {
-    selectCurso.innerHTML = '<option value="">-- Seleccionar Curso --</option>' + 
+    selectCurso.innerHTML = '<option value="">-- Seleccionar Curso --</option>' +
       cursos.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
   } else {
     selectCurso.innerHTML = '<option value="">Sin cursos registrados</option>';
@@ -306,7 +332,7 @@ function renderizarTabla(alumnos) {
 
 function filtrarTablaAlumnos(e) {
   const filtro = e.target.value.toLowerCase().trim();
-  const filtrados = listaAlumnosCache.filter(a => 
+  const filtrados = listaAlumnosCache.filter(a =>
     (a.nombre_apellido || '').toLowerCase().includes(filtro) ||
     (a.dni || '').toString().includes(filtro) ||
     (a.codigo_qr || '').toLowerCase().includes(filtro)
@@ -323,7 +349,7 @@ function editarAlumno(id) {
   document.getElementById('txtNombre').value = alumno.nombre_apellido;
   document.getElementById('txtCurso').value = alumno.curso || '';
   document.getElementById('txtCodigoQr').value = alumno.codigo_qr || '';
-  
+
   // PIN opcional en edición
   const txtPin = document.getElementById('txtPin');
   txtPin.value = '';

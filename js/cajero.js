@@ -121,7 +121,7 @@ async function buscarAlumno(criterio) {
   }
 }
 
-// 1. PROCESAR RECARGA DE SALDO
+// 1. PROCESAR RECARGA DE SALDO (Suma de Saldo vía RPC/POST)
 async function procesarRecarga(e) {
   e.preventDefault();
   if (!alumnoActual) return;
@@ -140,10 +140,11 @@ async function procesarRecarga(e) {
   const client = window._supabase || supabase;
 
   try {
-    const { error: errUpdate } = await client
-      .from('alumnos')
-      .update({ saldo: nuevoSaldo })
-      .eq('dni', alumnoActual.dni);
+    // 💡 Ejecuta la función SQL 'cargar_saldo' por POST (evita errores CORS y PATCH)
+    const { error: errUpdate } = await client.rpc('cargar_saldo', {
+      p_dni: alumnoActual.dni,
+      p_monto: monto
+    });
 
     if (errUpdate) throw errUpdate;
 
@@ -172,7 +173,7 @@ async function procesarRecarga(e) {
   }
 }
 
-// 2. PROCESAR EXTRACCIÓN DE SALDO
+// 2. PROCESAR EXTRACCIÓN DE SALDO (Resta de Saldo vía RPC/POST)
 async function procesarExtraccion(e) {
   e.preventDefault();
   if (!alumnoActual) return;
@@ -204,10 +205,11 @@ async function procesarExtraccion(e) {
   const client = window._supabase || supabase;
 
   try {
-    const { error: errUpdate } = await client
-      .from('alumnos')
-      .update({ saldo: nuevoSaldo })
-      .eq('dni', alumnoActual.dni);
+    // 💡 Ejecuta la función SQL 'cargar_saldo' restando la cantidad (vía POST)
+    const { error: errUpdate } = await client.rpc('cargar_saldo', {
+      p_dni: alumnoActual.dni,
+      p_monto: -monto
+    });
 
     if (errUpdate) throw errUpdate;
 
@@ -293,79 +295,61 @@ async function registrarLog(usuario, rol, accion, detalle, alumnoDni = null) {
 }
 
 // LECTOR QR OPTIMIZADO PARA PC (USB) Y CELULARES
-function abrirLectorQR() {
+async function abrirLectorQR() {
   const modalLector = document.getElementById('modalLectorQR');
   if (modalLector) modalLector.style.display = 'flex';
 
   if (html5QrcodeScanner) {
-    html5QrcodeScanner.clear();
+    try {
+      await html5QrcodeScanner.stop();
+      html5QrcodeScanner.clear();
+    } catch (e) {
+      // Ignorar limpieza previa
+    }
   }
 
   html5QrcodeScanner = new Html5Qrcode("reader");
 
-  // Configuración de alto rendimiento (25 FPS y área de lectura optimizada)
   const config = {
-    fps: 25, 
-    qrbox: function(viewfinderWidth, viewfinderHeight) {
+    fps: 20,
+    qrbox: function (viewfinderWidth, viewfinderHeight) {
       const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
       return {
-        width: Math.floor(minEdge * 0.85),
-        height: Math.floor(minEdge * 0.85)
+        width: Math.floor(minEdge * 0.8),
+        height: Math.floor(minEdge * 0.8)
       };
     },
     aspectRatio: 1.0
   };
 
-  // Intentamos iniciar con la cámara trasera/externa en HD
-  const cameraConfig = { 
-    facingMode: { ideal: "environment" }, // 💡 'ideal' evita errores si en PC no existe facingMode
-    width: { ideal: 1280 },
-    height: { ideal: 720 }
+  const onScanSuccess = (qrMessage) => {
+    const txtBuscar = document.getElementById('txtBuscarDni');
+    if (txtBuscar) txtBuscar.value = qrMessage.trim();
+    cerrarLectorQR();
+    buscarAlumno(qrMessage.trim());
   };
 
+  // Intento con cámara trasera/entorno
   html5QrcodeScanner.start(
-    cameraConfig,
+    { facingMode: "environment" },
     config,
-    (qrMessage) => {
-      document.getElementById('txtBuscarDni').value = qrMessage;
-      cerrarLectorQR();
-      buscarAlumno(qrMessage);
-    },
-    (errorMessage) => {
-      // Ignorar fotogramas donde no detecte QR
-    }
+    onScanSuccess,
+    () => { }
   ).catch(err => {
-    console.warn("Fallo al iniciar cámara con preferencia de entorno, intentando cámara por defecto...", err);
+    console.warn("Reintentando con cámara frontal/USB por defecto...", err);
 
-    // Fallback: Si falla la configuración avanzada (p. ej. en algunas cámaras USB de PC), abre cualquier cámara disponible
+    // Fallback: abrir cualquier cámara disponible (útil para webcams en PC)
     html5QrcodeScanner.start(
-      { fps: 25 },
+      { facingMode: "user" },
       config,
-      (qrMessage) => {
-        document.getElementById('txtBuscarDni').value = qrMessage;
-        cerrarLectorQR();
-        buscarAlumno(qrMessage);
-      },
-      () => {}
+      onScanSuccess,
+      () => { }
     ).catch(finalErr => {
       console.error("Error definitivo al iniciar la cámara:", finalErr);
-      alert("No se pudo acceder a la cámara USB o del dispositivo.");
+      alert("No se pudo acceder a la cámara. Revisa los permisos en tu navegador.");
+      cerrarLectorQR();
     });
   });
-}
-
-function cerrarLectorQR() {
-  const modalLector = document.getElementById('modalLectorQR');
-  if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop().then(() => {
-      html5QrcodeScanner.clear();
-      if (modalLector) modalLector.style.display = 'none';
-    }).catch(() => {
-      if (modalLector) modalLector.style.display = 'none';
-    });
-  } else if (modalLector) {
-    modalLector.style.display = 'none';
-  }
 }
 
 function cerrarLectorQR() {

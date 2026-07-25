@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Banco Escolar - Login</title>
   <link rel="stylesheet" href="css/index.css">
 </head>
+
 <body>
 
   <div class="login-card">
@@ -17,12 +19,12 @@
     <form id="loginForm" class="login-form">
       <div class="form-group">
         <label for="username">Usuario</label>
-        <input type="text" id="username" placeholder="Ej: admin" required>
+        <input type="text" id="username" placeholder="Ej: admin, posnet1, consulta" required>
       </div>
 
-      <div class="form-group">
+      <div class="form-group" id="passGroup">
         <label for="password">Contraseña</label>
-        <input type="password" id="password" placeholder="••••••••" required>
+        <input type="password" id="password" placeholder="••••••••">
       </div>
 
       <div id="errorMessage" class="error-message"></div>
@@ -31,11 +33,43 @@
     </form>
   </div>
 
+  <!-- MODAL ESCÁNER QR MAESTRO ADMIN -->
+  <div id="qrModal" class="qr-modal-overlay d-none">
+    <div class="qr-modal-content">
+      <h3 style="margin-top: 0; color: #ffc107;">🔐 Autorización Requerida</h3>
+      <p style="color: #ccc; font-size: 0.85rem;">Escanee el QR Maestro de Administrador o ingréselo manualmente.</p>
+
+      <!-- Contenedor con altura mínima fija para evitar colapsos visuales -->
+      <div id="qrReader"
+        style="width: 100%; min-height: 250px; background: #000; border-radius: 8px; overflow: hidden; margin-bottom: 12px;">
+      </div>
+
+      <!-- OPCIÓN DE INGRESO MANUAL -->
+      <div style="margin-top: 10px; text-align: left;">
+        <label style="color: #aaa; font-size: 0.8rem; display: block; margin-bottom: 4px;">¿Sin cámara o con falla?
+          Ingrese código manual:</label>
+        <div style="display: flex; gap: 6px;">
+          <input type="password" id="inputManualQr" placeholder="Código QR Maestro"
+            style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #444; background: #111; color: #fff;">
+          <button type="button" id="btnValidarManual"
+            style="padding: 8px 12px; background: #ffc107; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">OK</button>
+        </div>
+      </div>
+
+      <div id="qrModalError" class="error-message" style="margin-top: 10px; display: none; color: #ff4d4d;"></div>
+
+      <button type="button" id="btnCancelQr" class="btn-cancel" style="margin-top: 15px;">Cancelar / Volver</button>
+    </div>
+  </div>
+
   <!-- 1. CDN Oficial de Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- 2. Tu archivo de cliente Supabase -->
+  <!-- 2. Librería Escáner QR -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <!-- 3. Tu archivo de cliente Supabase -->
   <script src="js/supabaseClient.js"></script>
-  <!-- 3. Tu lógica de Login -->
+  <!-- 4. Tu lógica de Login -->
   <script src="js/index.js"></script>
 </body>
+
 </html>

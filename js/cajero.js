@@ -2,7 +2,6 @@ let alumnoActual = null;
 let html5QrcodeScanner = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Validar Sesión del Operador (revisa localStorage o sessionStorage)
   const sessionData = localStorage.getItem('usuarioBanco') || sessionStorage.getItem('session');
   if (!sessionData) {
     window.location.href = 'index.html';
@@ -16,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     lblUsuario.innerText = `${session.nombre || session.usuario || 'Usuario'} (${session.rol || 'CAJERO'})`;
   }
 
-  // Habilitar / Ocultar sección de extracción según permisos
   const secExtraccion = document.getElementById('secExtraccion');
   if (secExtraccion) {
     const puedeRetirar = session.puede_retirar === true || session.puede_retirar === 'true' || session.puede_retirar === 1;
@@ -29,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Logout
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
@@ -39,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 2. Eventos de Búsqueda
   const btnBuscar = document.getElementById('btnBuscar');
   if (btnBuscar) {
     btnBuscar.addEventListener('click', () => {
@@ -58,14 +54,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Escáner QR
   const btnEscanearQR = document.getElementById('btnEscanearQR');
   if (btnEscanearQR) btnEscanearQR.addEventListener('click', abrirLectorQR);
 
   const btnCerrarLectorQR = document.getElementById('btnCerrarLectorQR');
   if (btnCerrarLectorQR) btnCerrarLectorQR.addEventListener('click', cerrarLectorQR);
 
-  // Submit Formularios
   const formRecarga = document.getElementById('formRecarga');
   if (formRecarga) formRecarga.addEventListener('submit', procesarRecarga);
 
@@ -76,7 +70,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (formExtraccion) formExtraccion.addEventListener('submit', procesarExtraccion);
 });
 
-// BÚSQUEDA DE ALUMNO
 async function buscarAlumno(criterio) {
   try {
     const client = window._supabase || supabase;
@@ -96,7 +89,6 @@ async function buscarAlumno(criterio) {
 
     alumnoActual = data;
 
-    // Actualizar Panel Visual
     const lblNombre = document.getElementById('lblNombre');
     const lblCurso = document.getElementById('lblCurso');
     const lblDni = document.getElementById('lblDni');
@@ -115,13 +107,14 @@ async function buscarAlumno(criterio) {
 
     const panelAlumno = document.getElementById('panelAlumno');
     if (panelAlumno) panelAlumno.style.display = 'grid';
+
   } catch (err) {
     console.error(err);
     alert("Error al realizar la consulta en la base de datos.");
   }
 }
 
-// 1. PROCESAR RECARGA DE SALDO (Suma de Saldo vía RPC/POST)
+// 1. PROCESAR RECARGA DE SALDO
 async function procesarRecarga(e) {
   e.preventDefault();
   if (!alumnoActual) return;
@@ -134,13 +127,9 @@ async function procesarRecarga(e) {
 
   const sessionData = localStorage.getItem('usuarioBanco') || sessionStorage.getItem('session');
   const session = JSON.parse(sessionData);
-
-  const saldoActual = Number(alumnoActual.saldo || 0);
-  const nuevoSaldo = saldoActual + monto;
   const client = window._supabase || supabase;
 
   try {
-    // 💡 Ejecuta la función SQL 'cargar_saldo' por POST (evita errores CORS y PATCH)
     const { error: errUpdate } = await client.rpc('cargar_saldo', {
       p_dni: alumnoActual.dni,
       p_monto: monto
@@ -148,6 +137,7 @@ async function procesarRecarga(e) {
 
     if (errUpdate) throw errUpdate;
 
+    // Solo insertamos en 'transacciones' (evitamos duplicar en logs_auditoria)
     await client.from('transacciones').insert([{
       alumno_dni: alumnoActual.dni,
       usuario_banco_id: session.id || null,
@@ -156,30 +146,28 @@ async function procesarRecarga(e) {
       estado: 'OK'
     }]);
 
-    await registrarLog(
-      session.usuario || session.nombre,
-      session.rol,
-      'RECARGA_SALDO',
-      `Recarga de $${monto.toFixed(2)} a ${alumnoActual.nombre_apellido}. Saldo anterior: $${saldoActual.toFixed(2)} | Nuevo: $${nuevoSaldo.toFixed(2)}`,
-      alumnoActual.dni
-    );
+    // Actualizamos el objeto local de memoria
+    alumnoActual.saldo = Number(alumnoActual.saldo || 0) + monto;
 
-    alert(`¡Carga exitosa! Nuevo saldo de ${alumnoActual.nombre_apellido}: $${nuevoSaldo.toFixed(2)}`);
+    alert(`¡Carga exitosa! Nuevo saldo de ${alumnoActual.nombre_apellido}: $${Number(alumnoActual.saldo).toFixed(2)}`);
     document.getElementById('formRecarga').reset();
-    buscarAlumno(alumnoActual.dni);
+    await buscarAlumno(alumnoActual.dni); // Refresca UI
   } catch (err) {
     console.error(err);
     alert("Error al procesar la carga: " + err.message);
   }
 }
 
-// 2. PROCESAR EXTRACCIÓN DE SALDO (Resta de Saldo vía RPC/POST)
+// 2. PROCESAR EXTRACCIÓN DE SALDO
 async function procesarExtraccion(e) {
   e.preventDefault();
   if (!alumnoActual) return;
 
-  const monto = parseFloat(document.getElementById('montoExtraccion').value);
-  const pinIngresado = document.getElementById('pinExtraccion').value.trim();
+  const montoInput = document.getElementById('montoExtraccion').value;
+  const pinInput = document.getElementById('pinExtraccion').value;
+
+  const monto = parseFloat(montoInput);
+  const pinIngresado = String(pinInput).trim();
 
   if (isNaN(monto) || monto <= 0) {
     alert("Ingresá un monto válido para extraer.");
@@ -192,53 +180,65 @@ async function procesarExtraccion(e) {
     return;
   }
 
-  if (pinIngresado !== String(alumnoActual.pin)) {
-    alert("🔒 PIN incorrecto. El alumno debe ingresar su clave secreta de 4 dígitos.");
+  // Validación flexible de PIN (convirtiendo ambos a String limpios)
+  const pinDB = String(alumnoActual.pin || '').trim();
+  if (pinIngresado !== pinDB) {
+    alert("🔒 PIN incorrecto. El alumno debe ingresar su clave secreta.");
     document.getElementById('pinExtraccion').value = '';
+    
+    // Registrar fallo en logs
+    const sessionData = localStorage.getItem('usuarioBanco') || sessionStorage.getItem('session');
+    const session = JSON.parse(sessionData || '{}');
+    await registrarLog('INTENTO_FALLIDO_PIN', session.nombre || session.usuario, `Alumno DNI ${alumnoActual.dni}`, `Fallo de clave en intento de extracción de $${monto}`);
     return;
   }
 
   const sessionData = localStorage.getItem('usuarioBanco') || sessionStorage.getItem('session');
-  const session = JSON.parse(sessionData);
-
-  const nuevoSaldo = saldoActual - monto;
+  const session = JSON.parse(sessionData || '{}');
   const client = window._supabase || supabase;
 
   try {
-    // 💡 Ejecuta la función SQL 'cargar_saldo' restando la cantidad (vía POST)
+    // 1. Restamos el saldo en Supabase mediante RPC
     const { error: errUpdate } = await client.rpc('cargar_saldo', {
       p_dni: alumnoActual.dni,
-      p_monto: -monto
+      p_monto: -monto // Monto negativo para restar
     });
 
-    if (errUpdate) throw errUpdate;
+    if (errUpdate) {
+      console.error("Error al restar saldo en Supabase:", errUpdate);
+      throw errUpdate;
+    }
 
-    await client.from('transacciones').insert([{
+    // 2. OBTENER ID DE USUARIO (Manejo seguro si id no existe en session)
+    let idUsuario = session.id || session.usuario_id || session.id_usuario || null;
+
+    // 3. INSERTAR OBLIGATORIAMENTE EN 'transacciones'
+    const { error: errTrans } = await client.from('transacciones').insert([{
       alumno_dni: alumnoActual.dni,
-      usuario_banco_id: session.id || null,
+      usuario_banco_id: idUsuario,
       monto: monto,
       tipo: 'EXTRACCION',
       estado: 'OK'
     }]);
 
-    await registrarLog(
-      session.usuario || session.nombre,
-      session.rol,
-      'EXTRACCION_SALDO',
-      `Extracción de $${monto.toFixed(2)} entregada a ${alumnoActual.nombre_apellido}. Saldo anterior: $${saldoActual.toFixed(2)} | Nuevo: $${nuevoSaldo.toFixed(2)}`,
-      alumnoActual.dni
-    );
+    if (errTrans) {
+      console.error("Error al guardar en tabla transacciones:", errTrans);
+      alert("Atención: El saldo se descontó pero hubo un problema al registrar la transacción en el historial.");
+    }
 
-    alert(`¡Extracción autorizada! Entregar $${monto.toFixed(2)} en efectivo a ${alumnoActual.nombre_apellido}.\nNuevo saldo: $${nuevoSaldo.toFixed(2)}`);
+    // 4. Actualizamos el saldo local para reflejarlo en la interfaz de inmediato
+    alumnoActual.saldo = saldoActual - monto;
+
+    alert(`¡Extracción autorizada! Entregar $${monto.toFixed(2)} a ${alumnoActual.nombre_apellido}.\nNuevo saldo: $${Number(alumnoActual.saldo).toFixed(2)}`);
+    
     document.getElementById('formExtraccion').reset();
-    buscarAlumno(alumnoActual.dni);
+    await buscarAlumno(alumnoActual.dni); // Refresca UI
   } catch (err) {
-    console.error(err);
-    alert("Error al procesar el retiro: " + err.message);
+    console.error("Error crítico en extracción:", err);
+    alert("Error al procesar el retiro: " + (err.message || err));
   }
 }
-
-// 3. RESTAURAR PIN
+// 3. RESTAURAR / BLANQUEAR PIN
 async function procesarResetPin(e) {
   e.preventDefault();
   if (!alumnoActual) return;
@@ -261,12 +261,12 @@ async function procesarResetPin(e) {
 
     if (error) throw error;
 
+    // Blanqueo de PIN SÍ se registra en auditoría de seguridad
     await registrarLog(
-      session.usuario || session.nombre,
-      session.rol,
-      'RESET_PIN',
-      `Restauración de PIN realizada para el alumno ${alumnoActual.nombre_apellido}`,
-      alumnoActual.dni
+      'BLANQUEO_PIN',
+      session.nombre || session.usuario,
+      `Alumno DNI: ${alumnoActual.dni} (${alumnoActual.nombre_apellido})`,
+      `Se cambió/blanqueó la clave PIN a '${nuevoPin}' por solicitud presencial.`
     );
 
     alert("¡PIN actualizado con éxito!");
@@ -278,23 +278,20 @@ async function procesarResetPin(e) {
   }
 }
 
-// AUDITORÍA
-async function registrarLog(usuario, rol, accion, detalle, alumnoDni = null) {
+async function registrarLog(tipoEvento, usuarioOrigen, usuarioDestino, detalle) {
   try {
     const client = window._supabase || supabase;
-    await client.from('logs_sistema').insert([{
-      usuario_operador: usuario,
-      rol_operador: rol,
-      accion: accion,
-      detalle: detalle,
-      alumno_dni: alumnoDni
+    await client.from('logs_auditoria').insert([{
+      tipo_evento: tipoEvento,
+      usuario_origen: usuarioOrigen || 'SISTEMA',
+      usuario_destino: usuarioDestino || 'N/A',
+      detalle: detalle
     }]);
   } catch (err) {
-    console.error("Error al registrar en logs_sistema:", err);
+    console.error("Error al registrar evento en logs_auditoria:", err);
   }
 }
 
-// LECTOR QR OPTIMIZADO PARA PC (USB) Y CELULARES
 async function abrirLectorQR() {
   const modalLector = document.getElementById('modalLectorQR');
   if (modalLector) modalLector.style.display = 'flex';
@@ -303,9 +300,7 @@ async function abrirLectorQR() {
     try {
       await html5QrcodeScanner.stop();
       html5QrcodeScanner.clear();
-    } catch (e) {
-      // Ignorar limpieza previa
-    }
+    } catch (e) {}
   }
 
   html5QrcodeScanner = new Html5Qrcode("reader");
@@ -329,24 +324,19 @@ async function abrirLectorQR() {
     buscarAlumno(qrMessage.trim());
   };
 
-  // Intento con cámara trasera/entorno
   html5QrcodeScanner.start(
     { facingMode: "environment" },
     config,
     onScanSuccess,
     () => { }
   ).catch(err => {
-    console.warn("Reintentando con cámara frontal/USB por defecto...", err);
-
-    // Fallback: abrir cualquier cámara disponible (útil para webcams en PC)
     html5QrcodeScanner.start(
       { facingMode: "user" },
       config,
       onScanSuccess,
       () => { }
     ).catch(finalErr => {
-      console.error("Error definitivo al iniciar la cámara:", finalErr);
-      alert("No se pudo acceder a la cámara. Revisa los permisos en tu navegador.");
+      alert("No se pudo acceder a la cámara.");
       cerrarLectorQR();
     });
   });

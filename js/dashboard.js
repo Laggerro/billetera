@@ -1,3 +1,6 @@
+// Variable global para controlar el temporizador de auto-refresco
+let intervalRefresco = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Control de Seguridad
   const sessionData = sessionStorage.getItem('session');
@@ -13,20 +16,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnLogout = document.getElementById('btnLogout');
   if (btnLogout) {
     btnLogout.addEventListener('click', () => {
+      detenerAutoRefresco();
       sessionStorage.clear();
       window.location.href = 'index.html';
     });
   }
 
+  // Carga Inicial
+  await actualizarTablero();
+
+  // Iniciar auto-refresco cada 5000 ms (5 segundos)
+  iniciarAutoRefresco(5000);
+});
+
+// Función centralizadora de actualización
+async function actualizarTablero() {
   await cargarMetricas();
   await cargarUltimasTransacciones();
-});
+}
+
+function iniciarAutoRefresco(intervaloMs = 5000) {
+  detenerAutoRefresco(); // Limpia cualquier temporizador previo
+
+  intervalRefresco = setInterval(async () => {
+    // Solo actualiza si la pestaña/ventana está activa (optimización de recursos)
+    if (!document.hidden) {
+      await actualizarTablero();
+    }
+  }, intervaloMs);
+}
+
+function detenerAutoRefresco() {
+  if (intervalRefresco) {
+    clearInterval(intervalRefresco);
+    intervalRefresco = null;
+  }
+}
+
 
 async function cargarMetricas() {
   try {
     const client = window._supabase || supabase;
 
-    // Alumnos y Saldo
+    // 1. Alumnos y Saldo Circulante en Tarjetas
     const { data: alumnos, error: errAlumnos } = await client
       .from('alumnos')
       .select('saldo');
@@ -36,46 +68,63 @@ async function cargarMetricas() {
       const kpiSaldo = document.getElementById('kpiSaldoCirculante');
 
       if (kpiAlumnos) kpiAlumnos.innerText = alumnos.length;
+      
       const saldoTotal = alumnos.reduce((sum, item) => sum + Number(item.saldo || 0), 0);
       if (kpiSaldo) kpiSaldo.innerText = `$${saldoTotal.toFixed(2)}`;
     }
 
-    // Posnets
+    // 2. Stands Activos
     const { count: countPosnets, error: errPosnets } = await client
-      .from('postnets')
+      .from('posnets')
       .select('*', { count: 'exact', head: true })
-      .eq('activo', true);
+      .eq('habilitado', true);
 
     if (!errPosnets) {
       const kpiPosnets = document.getElementById('kpiPosnets');
       if (kpiPosnets) kpiPosnets.innerText = countPosnets || 0;
     }
 
-    // Transacciones
+    // 3. Totales de Movimientos
     const { data: transacciones, error: errTrans } = await client
       .from('transacciones')
       .select('monto, tipo, estado');
 
     if (!errTrans && transacciones) {
-      let totalIngresos = 0;
-      let totalEgresos = 0;
+      let totalRecargas = 0;
+      let totalVentasStands = 0;
+      let totalExtracciones = 0;
 
       transacciones.forEach(t => {
-        if (t.estado === 'OK') {
-          if (t.tipo === 'RECARGA') totalIngresos += Number(t.monto);
-          if (t.tipo === 'COBRO' || t.tipo === 'EXTRACCION') totalEgresos += Number(t.monto);
+        const estado = String(t.estado || '').toUpperCase();
+        const tipo = String(t.tipo || '').toUpperCase().trim();
+
+        if (estado === 'OK' || estado === 'COMPLETADO') {
+          if (tipo === 'RECARGA') {
+            totalRecargas += Number(t.monto);
+          } else if (tipo === 'COBRO') {
+            totalVentasStands += Number(t.monto);
+          } else if (tipo === 'EXTRACCION' || tipo === 'RETIRO') {
+            totalExtracciones += Number(t.monto);
+          }
         }
       });
 
-      const kpiIngresos = document.getElementById('kpiIngresos');
-      const kpiEgresos = document.getElementById('kpiEgresos');
-      if (kpiIngresos) kpiIngresos.innerText = `$${totalIngresos.toFixed(2)}`;
-      if (kpiEgresos) kpiEgresos.innerText = `$${totalEgresos.toFixed(2)}`;
+      // Dinero físico Real en la Caja Central del Banco
+      const efectivoEnCaja = totalRecargas - totalExtracciones;
+
+      const kpiEfectivoCaja = document.getElementById('kpiEfectivoCaja');
+      const kpiVentasStands = document.getElementById('kpiVentasStands');
+      const kpiExtracciones = document.getElementById('kpiExtracciones');
+
+      if (kpiEfectivoCaja) kpiEfectivoCaja.innerText = `$${efectivoEnCaja.toFixed(2)}`;
+      if (kpiVentasStands) kpiVentasStands.innerText = `$${totalVentasStands.toFixed(2)}`;
+      if (kpiExtracciones) kpiExtracciones.innerText = `$${totalExtracciones.toFixed(2)}`;
     }
   } catch (e) {
     console.error("Error al obtener métricas:", e);
   }
 }
+
 
 async function cargarUltimasTransacciones() {
   const tbody = document.getElementById('tblTransacciones');
@@ -92,7 +141,7 @@ async function cargarUltimasTransacciones() {
         tipo,
         estado,
         fecha_hora,
-        postnets (nombre_stand)
+        posnets (nombre_posnet)
       `)
       .order('fecha_hora', { ascending: false })
       .limit(10);
@@ -106,8 +155,17 @@ async function cargarUltimasTransacciones() {
 
     tbody.innerHTML = data.map(t => {
       const fecha = new Date(t.fecha_hora).toLocaleString('es-AR');
-      const badgeClass = t.tipo === 'RECARGA' ? 'badge-recarga' : 'badge-cobro';
-      const standNombre = t.postnets ? t.postnets.nombre_stand : 'Caja Principal';
+      const tipoUpper = String(t.tipo || '').toUpperCase();
+      
+      // Asignación de Badge según tipo
+      let badgeClass = 'badge-cobro'; // Default (Rojo/Azul según tu CSS)
+      if (tipoUpper === 'RECARGA') {
+        badgeClass = 'badge-recarga'; // Verde
+      } else if (tipoUpper === 'EXTRACCION') {
+        badgeClass = 'bg-warning text-dark'; // Amarillo/Naranja de Bootstrap
+      }
+
+      const standNombre = t.posnets ? t.posnets.nombre_posnet : 'Caja Principal';
       return `
         <tr>
           <td>${fecha}</td>

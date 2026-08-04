@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ${esAdmin ? `
             <a href="admin-dashboard.html" style="color: #fbd38d; text-decoration: none; font-weight: 600;">📊 Tablero Estado</a>
             <a href="admin-config.html" style="color: #fbd38d; text-decoration: none; font-weight: 600;">⚙️ Configuración Admin</a>
+            <a href="auditoria.html" style="color: #fbd38d; text-decoration: none; font-weight: 600;">⚖️ Auditoría</a>
           ` : ''}
         </div>
       </div>

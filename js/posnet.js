@@ -168,28 +168,35 @@ async function confirmarPago() {
         p_pin: pin,
         p_monto: monto,
         p_posnet_id: posnetActual.id,
-        p_tipo: "COBRO" // 👈 Especificamos el tipo explícito para la transacción
+        p_tipo: "COBRO"
     });
 
-    const modalElement = document.getElementById("modalPin");
-    const modal = bootstrap.Modal.getInstance(modalElement);
+    const modalPinElem = document.getElementById("modalPin");
+    const modalPin = bootstrap.Modal.getInstance(modalPinElem);
 
     if (error || !data.exito) {
         alert(`❌ ${data ? data.mensaje : error.message}`);
         document.getElementById("inputPin").value = "";
         document.getElementById("inputPin").focus();
     } else {
-        if (modal) modal.hide();
-        showStatus(`✅ ¡PAGO APROBADO! $${monto.toLocaleString()}`, "alert-success");
+        // 1. Ocultar modal del PIN
+        if (modalPin) modalPin.hide();
+
+        // 2. Cargar datos en el Modal de Éxito
+        const nombreAlumno = document.getElementById("modalAlumnoNombre").innerText;
+        document.getElementById("exitoMonto").innerText = `$ ${monto.toLocaleString()}`;
+        document.getElementById("exitoAlumno").innerText = nombreAlumno;
+
+        // 3. Mostrar Modal de Éxito
+        const modalExito = new bootstrap.Modal(document.getElementById("modalExito"));
+        modalExito.show();
+
+        // 4. Limpiar datos de fondo y actualizar métricas
+        showStatus(`✅ ¡Último pago aprobado! $${monto.toLocaleString()}`, "alert-success");
         clearKeypad();
         await cargarMetricasPOSNET();
-
-        setTimeout(() => {
-            showStatus("🟡 Ingrese el monto a cobrar", "alert-secondary");
-        }, 3000);
     }
 }
-
 function cancelarPago() {
     const modal = bootstrap.Modal.getInstance(document.getElementById("modalPin"));
     if (modal) modal.hide();

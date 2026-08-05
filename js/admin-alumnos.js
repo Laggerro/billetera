@@ -52,7 +52,7 @@ async function cargarTodo() {
     }
 
     // 3. Obtener POSNETs (Stands de cobro)
-    const { data: posnets } = await client.from('postnets').select('*');
+    const { data: posnets } = await client.from('posnets').select('*');
     if (posnets) {
       posnets.forEach(p => {
         listaGlobal.push({

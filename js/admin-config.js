@@ -151,10 +151,10 @@ async function cargarPosnets() {
     <tr>
       <td><b>${p.nombre_stand}</b></td>
       <td>${p.numero_serie || '-'}</td>
-      <td><span class="badge-status ${p.activo ? 'badge-ok' : 'badge-off'}">${p.activo ? 'Activo' : 'Inactivo'}</span></td>
+      <td><span class="badge-status ${p.habilitado ? 'badge-ok' : 'badge-off'}">${p.habilitado ? 'Activo' : 'Inactivo'}</span></td>
       <td>
-        <button onclick="toggleEstadoPosnet('${p.id}', ${!p.activo})" class="btn" style="padding: 2px 6px; font-size: 0.8rem; background: ${p.activo ? '#e53e3e' : '#38a169'}; color: white;">
-          ${p.activo ? 'Baja' : 'Alta'}
+        <button onclick="toggleEstadoPosnet('${p.id}', ${!p.habilitado})" class="btn" style="padding: 2px 6px; font-size: 0.8rem; background: ${p.habilitado ? '#e53e3e' : '#38a169'}; color: white;">
+          ${p.habilitado ? 'Baja' : 'Alta'}
         </button>
       </td>
     </tr>
@@ -167,7 +167,7 @@ async function guardarPosnet(e) {
   const nombre = document.getElementById('txtPosnetNombre').value.trim();
   const serie = document.getElementById('txtPosnetSerie').value.trim();
 
-  const { error } = await client.from('posnets').insert([{ nombre_stand: nombre, numero_serie: serie, activo: true }]);
+  const { error } = await client.from('posnets').insert([{ nombre_stand: nombre, numero_serie: serie, habilitado: true }]);
   if (error) {
     alert("Error al registrar POSNET: " + error.message);
   } else {
@@ -180,7 +180,7 @@ async function toggleEstadoPosnet(id, nuevoEstado) {
   const client = window._supabase || supabase;
   const idNumerico = parseInt(id, 10);
 
-  await client.from('posnets').update({ activo: nuevoEstado }).eq('id', idNumerico);
+  await client.from('posnets').update({ habilitado: nuevoEstado }).eq('id', idNumerico);
   await cargarPosnets();
 }
 

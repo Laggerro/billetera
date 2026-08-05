@@ -49,7 +49,7 @@ async function cargarMetricasPOSNET() {
     }
 }
 
-// --- TECLADO NUMÉRICO ---
+// --- TECLADO NUMÉRICO DE COBRO ---
 function pressKey(val) {
     if (montoIngresado === "0") montoIngresado = val;
     else montoIngresado += val;
@@ -65,9 +65,8 @@ function updateDisplay() {
     document.getElementById("displayMonto").innerText = `$ ${parseInt(montoIngresado).toLocaleString()}`;
 }
 
-// --- NUEVO FLUJO: BOTÓN COBRAR Y CÁMARA ---
+// --- FLUJO: BOTÓN COBRAR Y CÁMARA ---
 
-// Se ejecuta al hacer clic en el botón "Cobrar"
 async function iniciarCobro() {
     const monto = parseInt(montoIngresado);
     if (monto <= 0) {
@@ -97,17 +96,17 @@ async function iniciarCobro() {
 
 // Al detectar un código QR
 async function onScanSuccess(decodedText) {
-    // Detener y apagar la cámara de inmediato para ahorrar batería
+    // 1. Apagar cámara
     await detenerCamara();
 
-    // Cerrar el modal del lector QR
+    // 2. Cerrar el modal del lector QR
     const modalScannerElem = document.getElementById("modalScanner");
     const modalScanner = bootstrap.Modal.getInstance(modalScannerElem);
     if (modalScanner) modalScanner.hide();
 
     qrEscaneadoActual = decodedText;
 
-    // Consultar alumno en Supabase
+    // 3. Consultar alumno en Supabase
     const { data: alumno, error } = await getDb()
         .from("alumnos")
         .select("nombre_apellido, foto_url")
@@ -120,16 +119,20 @@ async function onScanSuccess(decodedText) {
         return;
     }
 
-    // Cargar datos del alumno en el modal del PIN
+    // 4. Cargar datos del alumno en el modal del PIN
     document.getElementById("modalAlumnoNombre").innerText = alumno.nombre_apellido;
     document.getElementById("modalAlumnoFoto").src = alumno.foto_url || "https://cdn-icons-png.flaticon.com/512/3135/3135715.png";
     document.getElementById("modalMontoCobrar").innerText = `$ ${parseInt(montoIngresado).toLocaleString()}`;
-    document.getElementById("inputPin").value = "";
 
-    // Mostrar modal del PIN
-    const modalPin = new bootstrap.Modal(document.getElementById("modalPin"));
-    modalPin.show();
-    setTimeout(() => document.getElementById("inputPin").focus(), 300);
+    // Limpiar pantalla del PIN virtual
+    clearPin();
+
+    // 5. Mostrar modal del PIN tras pequeño tiempo de espera
+    setTimeout(() => {
+        const modalPinElem = document.getElementById("modalPin");
+        const modalPin = new bootstrap.Modal(modalPinElem);
+        modalPin.show();
+    }, 300);
 }
 
 // Apaga físicamente el hardware de la cámara
@@ -152,52 +155,119 @@ async function cancelarEscaneo() {
     showStatus("🟡 Cobro cancelado", "alert-secondary");
 }
 
-// --- CONFIRMACIÓN Y PROCESAMIENTO ---
+
+// --- MANEJO DEL PIN ESTILO .NET (MEMORIA PRIVADA) ---
+
+let pinMemoria = "";
+
+function pressPinKey(num) {
+    if (pinMemoria.length < 4) {
+        pinMemoria += num;
+        actualizarDisplayPin();
+    }
+}
+
+function deletePinKey() {
+    pinMemoria = pinMemoria.slice(0, -1);
+    actualizarDisplayPin();
+}
+
+function clearPin() {
+    pinMemoria = "";
+    actualizarDisplayPin();
+}
+
+function actualizarDisplayPin() {
+    const display = document.getElementById("displayPin");
+    if (!display) return;
+
+    if (pinMemoria.length === 0) {
+        display.innerText = "____";
+    } else {
+        display.innerText = "* ".repeat(pinMemoria.length).trim();
+    }
+}
+
+// Capturar el teclado físico del PC si presiona números o 'Backspace'
+document.addEventListener("keydown", (e) => {
+    const modalPin = document.getElementById("modalPin");
+    if (modalPin && modalPin.classList.contains("show")) {
+        if (e.key >= "0" && e.key <= "9") {
+            pressPinKey(e.key);
+        } else if (e.key === "Backspace") {
+            deletePinKey();
+        } else if (e.key === "Enter") {
+            confirmarPago();
+        }
+    }
+});
+
+
+// --- CONFIRMAR PAGO ---
+
 async function confirmarPago() {
-    const pin = document.getElementById("inputPin").value.trim();
     const monto = parseInt(montoIngresado);
 
-    if (pin.length < 4) {
+    if (pinMemoria.length < 4) {
         alert("Ingrese el PIN completo de 4 dígitos");
         return;
     }
 
-    // Ejecutamos el RPC enviando 'COBRO' como tipo
+    // Verificación de validez del UUID
+    if (!posnetActual || !posnetActual.id || posnetActual.id.length < 30) {
+        alert("❌ Error de sesión: El ID del POSNET no es un UUID válido. Inicie sesión nuevamente.");
+        return;
+    }
+
+    // Ejecutamos la función almacenada (RPC)
     const { data, error } = await getDb().rpc("procesar_pago_posnet", {
         p_codigo_qr: qrEscaneadoActual,
-        p_pin: pin,
+        p_pin: pinMemoria,
         p_monto: monto,
         p_posnet_id: posnetActual.id,
         p_tipo: "COBRO"
     });
 
-    const modalPinElem = document.getElementById("modalPin");
-    const modalPin = bootstrap.Modal.getInstance(modalPinElem);
-
     if (error || !data.exito) {
         alert(`❌ ${data ? data.mensaje : error.message}`);
-        document.getElementById("inputPin").value = "";
-        document.getElementById("inputPin").focus();
+        clearPin();
     } else {
-        // 1. Ocultar modal del PIN
+        const nombreAlumno = document.getElementById("modalAlumnoNombre").innerText;
+
+        // Ocultar Modal de PIN
+        const modalPinElem = document.getElementById("modalPin");
+        const modalPin = bootstrap.Modal.getInstance(modalPinElem);
         if (modalPin) modalPin.hide();
 
-        // 2. Cargar datos en el Modal de Éxito
-        const nombreAlumno = document.getElementById("modalAlumnoNombre").innerText;
+        // Cargar datos en Modal de Éxito
         document.getElementById("exitoMonto").innerText = `$ ${monto.toLocaleString()}`;
         document.getElementById("exitoAlumno").innerText = nombreAlumno;
 
-        // 3. Mostrar Modal de Éxito
-        const modalExito = new bootstrap.Modal(document.getElementById("modalExito"));
-        modalExito.show();
-
-        // 4. Limpiar datos de fondo y actualizar métricas
-        showStatus(`✅ ¡Último pago aprobado! $${monto.toLocaleString()}`, "alert-success");
+        // Resetear variables y métricas
         clearKeypad();
+        clearPin();
         await cargarMetricasPOSNET();
+
+        // Mostrar Modal de Éxito
+        setTimeout(() => {
+            const modalExitoElem = document.getElementById("modalExito");
+            const modalExito = new bootstrap.Modal(modalExitoElem);
+            modalExito.show();
+        }, 300);
     }
 }
+
+// Función para cerrar el modal de éxito
+function cerrarExito() {
+    const modalExitoElem = document.getElementById("modalExito");
+    const modalExito = bootstrap.Modal.getInstance(modalExitoElem);
+    if (modalExito) modalExito.hide();
+
+    showStatus("🟡 Ingrese el monto a cobrar", "alert-secondary");
+}
+
 function cancelarPago() {
+    clearPin();
     const modal = bootstrap.Modal.getInstance(document.getElementById("modalPin"));
     if (modal) modal.hide();
     showStatus("🟡 Cobro cancelado", "alert-secondary");
@@ -206,7 +276,7 @@ function cancelarPago() {
 function showStatus(text, bgClass) {
     const box = document.getElementById("statusBox");
     if (box) {
-        box.className = `status-bar ${bgClass} mt-3`;
+        box.className = `status-bar alert ${bgClass} text-center fw-bold mb-3`;
         box.innerText = text;
     }
 }

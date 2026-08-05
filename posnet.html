@@ -105,7 +105,7 @@
         </div>
     </div>
 
-    <!-- MODAL 2: CONFIRMACIÓN CON PIN Y FOTO -->
+    <!-- MODAL DE CONFIRMACIÓN CON PIN (ESTILO .NET / PANTALLA VIRTUAL) -->
     <div class="modal fade" id="modalPin" data-bs-backdrop="static" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-secondary">
@@ -115,40 +115,71 @@
                 </div>
                 <div class="modal-body text-center">
                     <img id="modalAlumnoFoto" src="" class="rounded-circle mb-2 border border-warning"
-                        style="width: 100px; height: 100px; object-fit: cover;" alt="Foto Alumno">
+                        style="width: 90px; height: 90px; object-fit: cover;" alt="Foto Alumno">
                     <h4 class="text-warning mb-1" id="modalAlumnoNombre">Cargando...</h4>
                     <h3 class="text-success mb-3" id="modalMontoCobrar">$ 0</h3>
-                    <input type="password" id="inputPin"
-                        class="form-control form-control-lg text-center fs-2 bg-black text-warning border-secondary mb-3"
-                        maxlength="4" placeholder="****" inputmode="numeric">
-                    <button class="btn btn-success btn-lg w-100 fw-bold fs-4" onclick="confirmarPago()">CONFIRMAR
-                        PAGO</button>
+
+                    <!-- DISPLAY VIRTUAL PARA DIBUJAR ASTERISCOS (SIN INPUT) -->
+                    <div class="mb-3">
+                        <div id="displayPin"
+                            class="form-control form-control-lg text-center fs-1 bg-black text-warning border-secondary p-2 user-select-none"
+                            style="letter-spacing: 6px;">
+                            ____
+                        </div>
+                    </div>
+
+                    <!-- TECLADO NUMÉRICO INTEGRADO PARA PIN -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('1')">1</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('2')">2</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('3')">3</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('4')">4</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('5')">5</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('6')">6</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('7')">7</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('8')">8</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('9')">9</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-danger w-100 py-2 fs-4"
+                                onclick="clearPin()">C</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-outline-light w-100 py-2 fs-4"
+                                onclick="pressPinKey('0')">0</button></div>
+                        <div class="col-4"><button type="button" class="btn btn-warning w-100 py-2 fs-4"
+                                onclick="deletePinKey()">⌫</button></div>
+                    </div>
+
+                    <button type="button" class="btn btn-success btn-lg w-100 fw-bold fs-4 py-3"
+                        onclick="confirmarPago()">
+                        CONFIRMAR PAGO
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- CAMBIO 1: Desactivar guardado de contraseña en el inputPin -->
-    <!-- Dentro del modalPin, reemplaza tu <input id="inputPin"> por este: -->
-    <input type="text" id="inputPin"
-        class="form-control form-control-lg text-center fs-2 bg-black text-warning border-secondary mb-3" maxlength="4"
-        placeholder="****" inputmode="numeric" autocomplete="new-password" style="-webkit-text-security: disk;">
-
-
-    <!-- CAMBIO 2: Agregar el nuevo MODAL DE PAGO ÉXITOSO -->
-    <div class="modal fade" id="modalExito" tabindex="-1" data-bs-backdrop="static">
+    <!-- MODAL DE ÉXITO -->
+    <div class="modal fade" id="modalExito" data-bs-backdrop="static" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-success">
                 <div class="modal-body text-center p-4">
                     <div class="mb-3">
-                        <span style="font-size: 4rem;">✅</span>
+                        <span style="font-size: 4.5rem;">✅</span>
                     </div>
                     <h3 class="text-success fw-bold">¡Pago Aprobado!</h3>
                     <h2 class="display-4 fw-bold text-white my-3" id="exitoMonto">$ 0</h2>
                     <p class="text-muted mb-1">Alumno / Tarjeta:</p>
                     <h5 class="text-warning mb-4" id="exitoAlumno">-</h5>
 
-                    <button class="btn btn-success btn-lg w-100 fw-bold py-3 fs-5" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-success btn-lg w-100 fw-bold py-3 fs-5"
+                        onclick="cerrarExito()">
                         ACEPTAR / NUEVO COBRO
                     </button>
                 </div>

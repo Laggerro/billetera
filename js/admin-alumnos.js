@@ -57,8 +57,8 @@ async function cargarTodo() {
       posnets.forEach(p => {
         listaGlobal.push({
           tipo: 'POSNETS',
-          id: p.numero_serie || `ID: ${p.id}`,
-          nombre: p.nombre_stand,
+          id: p.device_id_autorizado || `ID: ${p.id}`,
+          nombre: p.nombre_posnet,
           detalle: `Stand #${p.id}`,
           extra: p.activo ? '🟢 Conectado' : '🔴 Desconectado',
           qr: p.token_sesion ? 'Token Generado' : 'Sin Token',

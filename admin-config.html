@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,16 +13,26 @@
       gap: 20px;
       margin-top: 20px;
     }
+
     .badge-status {
       padding: 3px 8px;
       border-radius: 4px;
       font-size: 0.8rem;
       font-weight: bold;
     }
-    .badge-ok { background: #c6f6d5; color: #22543d; }
-    .badge-off { background: #fed7d7; color: #742a2a; }
+
+    .badge-ok {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+
+    .badge-off {
+      background: #fed7d7;
+      color: #742a2a;
+    }
   </style>
 </head>
+
 <body>
 
   <div id="navbar-container"></div>
@@ -39,7 +50,7 @@
 
         <form id="formUsuarioBanco" style="margin-bottom: 20px;">
           <input type="hidden" id="usrId">
-          
+
           <div class="form-group">
             <label for="txtUsrUsuario">Usuario / Login</label>
             <input type="text" id="txtUsrUsuario" placeholder="Ej: cajero_turno1" required>
@@ -69,7 +80,8 @@
 
           <div style="display: flex; gap: 10px;">
             <button type="submit" id="btnGuardarUsr" class="btn btn-primary" style="flex: 1;">Crear Usuario</button>
-            <button type="button" id="btnCancelarUsr" class="btn" style="display: none; background: #718096; color: white;">Cancelar</button>
+            <button type="button" id="btnCancelarUsr" class="btn"
+              style="display: none; background: #718096; color: white;">Cancelar</button>
           </div>
         </form>
 
@@ -100,9 +112,20 @@
             <input type="text" id="txtPosnetNombre" placeholder="Ej: Stand Buffet 5to Año" required>
           </div>
 
+          <!-- Campos obligatorios de credenciales para la terminal POSNET -->
+          <div class="form-group">
+            <label for="txtPosnetUsuario">Usuario de Acceso POSNET</label>
+            <input type="text" id="txtPosnetUsuario" placeholder="Ej: posnet_buffet" required>
+          </div>
+
+          <div class="form-group">
+            <label for="txtPosnetPass">Contraseña POSNET</label>
+            <input type="password" id="txtPosnetPass" placeholder="••••••••" required>
+          </div>
+
           <div class="form-group">
             <label for="txtPosnetSerie">N° de Serie / Dispositivo</label>
-            <input type="text" id="txtPosnetSerie" placeholder="Ej: POS-001" required>
+            <input type="text" id="txtPosnetSerie" placeholder="Ej: POS-001">
           </div>
 
           <button type="submit" class="btn btn-primary" style="width: 100%;">Registrar Terminal</button>
@@ -112,8 +135,9 @@
           <table class="tabla-datos" style="width: 100%;">
             <thead>
               <tr>
-                <th>Stand</th>
+                <th>Stand / Usuario</th>
                 <th>N° Serie</th>
+                <th>Acumulado</th>
                 <th>Estado</th>
                 <th>Acción</th>
               </tr>
@@ -154,4 +178,5 @@
   <script src="js/navbar.js"></script>
   <script src="js/admin-config.js"></script>
 </body>
+
 </html>

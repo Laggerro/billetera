@@ -62,12 +62,12 @@ async function guardarUsuarioBanco(e) {
   const puedeRetirar = document.getElementById('chkPuedeRetirar').checked;
 
   // Creamos el objeto mapeado exactamente a las columnas de Supabase
-  const payload = { 
-    usuario, 
-    nombre, 
-    rol, 
-    puede_retirar: puedeRetirar, 
-    activo: true 
+  const payload = {
+    usuario,
+    nombre,
+    rol,
+    puede_retirar: puedeRetirar,
+    activo: true
   };
 
   // Solo incluimos la contraseña si fue ingresada en el campo
@@ -141,7 +141,7 @@ async function cargarPosnets() {
   const tbody = document.getElementById('tblPosnets');
   const client = window._supabase || supabase;
 
-  const { data } = await client.from('postnets').select('*').order('id');
+  const { data } = await client.from('posnets').select('*').order('id');
   if (!data || data.length === 0) {
     tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">No hay POSNETs configurados.</td></tr>`;
     return;
@@ -167,7 +167,7 @@ async function guardarPosnet(e) {
   const nombre = document.getElementById('txtPosnetNombre').value.trim();
   const serie = document.getElementById('txtPosnetSerie').value.trim();
 
-  const { error } = await client.from('postnets').insert([{ nombre_stand: nombre, numero_serie: serie, activo: true }]);
+  const { error } = await client.from('posnets').insert([{ nombre_stand: nombre, numero_serie: serie, activo: true }]);
   if (error) {
     alert("Error al registrar POSNET: " + error.message);
   } else {
@@ -180,7 +180,7 @@ async function toggleEstadoPosnet(id, nuevoEstado) {
   const client = window._supabase || supabase;
   const idNumerico = parseInt(id, 10);
 
-  await client.from('postnets').update({ activo: nuevoEstado }).eq('id', idNumerico);
+  await client.from('posnets').update({ activo: nuevoEstado }).eq('id', idNumerico);
   await cargarPosnets();
 }
 
